@@ -1,0 +1,18 @@
+# Dependencies
+frontend/node_modules/
+backend/.venv/
+backend/.env
+
+# Local Database & Uploads
+backend/health_platform.db
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Python cache files
+**/__pycache__/
+**/*.pyc
+
+# Editor configurations
+.vscode/
+.idea/
+.agents/
