@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { 
   Search, Shield, Activity, Calendar, FileText, Settings, AlertTriangle, 
   CheckCircle, Plus, Upload, Send, RefreshCw, BarChart2, User, Landmark, 
@@ -16,13 +16,134 @@ const getFileUrl = (path) => {
   return `${BASE_URL}/${cleanPath}`
 }
 
+const formatPDFSummary = (summary) => {
+  if (!summary) return '';
+  if (Array.isArray(summary)) {
+    return summary.map(item => `
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 8px; font-size: 13px;">
+        <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px; color: #0f766e;">
+          <span>${item.date || item.Date || 'N/A'}</span>
+          <span>${item.event || item.Event || 'Event'}</span>
+        </div>
+        ${item.findings ? `<div><strong>Findings:</strong> ${item.findings}</div>` : ''}
+        ${item.treatment ? `<div><strong>Treatment:</strong> ${item.treatment}</div>` : ''}
+        ${item.explanation ? `<div><strong>Notes:</strong> ${item.explanation}</div>` : ''}
+      </div>
+    `).join('');
+  }
+  if (typeof summary === 'string') {
+    return summary.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+      const cleanLine = line.replace(/^[-*\d.]+\s*/, '').trim();
+      return `<p style="margin: 4px 0;">${cleanLine}</p>`;
+    }).join('');
+  }
+  return summary;
+};
+
+const renderClinicalSummary = (summary) => {
+  if (!summary) return null;
+
+  if (typeof summary === 'object' && summary !== null && !Array.isArray(summary)) {
+    return (
+      <div className="space-y-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+        {Object.entries(summary).map(([key, val]) => (
+          <div key={key} className="text-xs text-slate-650 leading-relaxed">
+            <strong className="text-teal-750 capitalize">{key.replace(/_/g, ' ').replace(/SUMMARY/gi, 'Summary')}:</strong>{' '}
+            {typeof val === 'object' && val !== null ? (
+              <div className="pl-3 mt-1 space-y-1">
+                {Object.entries(val).map(([sk, sv]) => (
+                  <div key={sk}>
+                    <strong className="text-slate-700 capitalize">{sk}:</strong> {String(sv)}
+                  </div>
+                ))}
+              </div>
+            ) : String(val)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  
+  if (Array.isArray(summary)) {
+    return (
+      <div className="space-y-2.5">
+        {summary.map((item, idx) => (
+          <div key={idx} className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-1">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-1.5">
+              <span className="text-[11px] font-bold text-teal-750 bg-teal-50 px-2 py-0.5 rounded">
+                {item.date || item.Date || 'N/A'}
+              </span>
+              <span className="text-[11px] font-bold text-slate-800">
+                {item.event || item.Event || 'Medical Event'}
+              </span>
+            </div>
+            {item.findings && (
+              <div className="text-xs text-slate-600">
+                <strong>Findings:</strong> {item.findings}
+              </div>
+            )}
+            {item.treatment && (
+              <div className="text-xs text-slate-600">
+                <strong>Treatment/Change:</strong> {item.treatment}
+              </div>
+            )}
+            {item.explanation && (
+              <div className="text-xs text-slate-600">
+                <strong>Clinical Notes:</strong> {item.explanation}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  
+  if (typeof summary === 'string') {
+    const lines = summary.split('\n').map(l => l.trim()).filter(Boolean);
+    const hasBullets = lines.some(l => l.startsWith('-') || l.startsWith('*') || /^\d+\./.test(l));
+    
+    if (hasBullets) {
+      return (
+        <div className="space-y-2">
+          {lines.map((line, idx) => {
+            const cleanLine = line.replace(/^[-*\d.]+\s*/, '').trim();
+            const match = cleanLine.match(/^(.*?)[\s—-]+(.*?)$/);
+            if (match && match[1] && match[2]) {
+              const dateOrEvent = match[1].trim();
+              const details = match[2].trim();
+              return (
+                <div key={idx} className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                  <div className="text-xs text-slate-700">
+                    <strong className="text-teal-700 font-semibold">{dateOrEvent}:</strong> {details}
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div key={idx} className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-650">
+                {cleanLine}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+  }
+
+  return (
+    <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-200">
+      {summary}
+    </p>
+  );
+};
+
 const downloadBriefPDF = (patient, brief) => {
   if (!patient || !brief) return;
   const printWindow = window.open('', '_blank');
   const printContent = `
     <html>
     <head>
-      <title>AyuSeva Clinical Summary - ${patient.name || 'N/A'}</title>
+      <title>AyuSeva ${brief.selected_context ? brief.selected_context + ' ' : ''}Clinical Summary - ${patient.name || 'N/A'}</title>
       <style>
         body { font-family: 'Inter', system-ui, sans-serif; color: #1e293b; padding: 40px; line-height: 1.5; }
         .header { border-bottom: 2px solid #0f766e; padding-bottom: 20px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
@@ -41,7 +162,7 @@ const downloadBriefPDF = (patient, brief) => {
       <div class="header">
         <div>
           <div class="logo">AyuSeva</div>
-          <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Longitudinal Clinical Brief & CDSS Summary</div>
+          <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Longitudinal Clinical Brief & CDSS Summary ${brief.selected_context ? `(Context: ${brief.selected_context})` : `(Mode: ${brief.summary_type.toUpperCase()})`}</div>
         </div>
         <div class="date">Report Generated: ${new Date().toLocaleDateString()}</div>
       </div>
@@ -59,8 +180,8 @@ const downloadBriefPDF = (patient, brief) => {
           </ul>
         </div>
       ` : ''}
-      <div class="section-title">15-Second Clinical Summary</div>
-      <div class="summary-text">${brief.clinical_summary}</div>
+      <div class="section-title">${brief.selected_context ? `${brief.selected_context} Summary` : 'Clinical Summary'}</div>
+      <div class="summary-text">${formatPDFSummary(brief.clinical_summary)}</div>
       
       <div class="section-title">Active Diagnoses</div>
       <ul style="font-size: 13px; color: #334155; margin-left: 20px; padding: 0;">
@@ -145,12 +266,19 @@ function App() {
   const [preventiveBookingStatus, setPreventiveBookingStatus] = useState(null)
   const [activeSpecialty, setActiveSpecialty] = useState('General')
   const [activeSummaryMode, setActiveSummaryMode] = useState('complete')
-  const [diseaseFocus, setDiseaseFocus] = useState('')
+  const [clinicalContexts, setClinicalContexts] = useState([])
+  const [selectedContextId, setSelectedContextId] = useState(null)
+  const [contextsLoaded, setContextsLoaded] = useState(false)
   const [currentVisitReason, setCurrentVisitReason] = useState('')
   const [showExcludedHistory, setShowExcludedHistory] = useState(false)
+  const [showSummarySelector, setShowSummarySelector] = useState(false)
+  const [downloadingSummary, setDownloadingSummary] = useState(false)
+  const [briefLoading, setBriefLoading] = useState(false)
+  const patientLoadSeq = useRef(0)
+  const activeUidRef = useRef(null)
   
   // Active test selection for chart
-  const [selectedChartTest, setSelectedChartTest] = useState('Glucose')
+  const [selectedChartTest, setSelectedChartTest] = useState('')
 
   // Load all patients on mount for quick lookup lists
   useEffect(() => {
@@ -170,41 +298,73 @@ function App() {
     }
   }
 
-  const fetchPatientData = async (uid) => {
-    if (!uid) return
-    setLoading(true)
+  const clearPatientScopedState = () => {
     setActivePatient(null)
     setTimeline([])
     setClaims([])
     setClinicalBrief(null)
+    setClinicalContexts([])
+    setSelectedContextId(null)
+    setContextsLoaded(false)
     setClaimDispatchStatus(null)
     setPreventiveBookingStatus(null)
     setActiveSummaryMode('complete')
-    setDiseaseFocus('')
     setCurrentVisitReason('')
     setShowExcludedHistory(false)
+    setSelectedChartTest('')
+    setShowSummarySelector(false)
+    setDownloadingSummary(false)
+    setBriefLoading(false)
+  }
+
+  const fetchPatientData = async (uid) => {
+    if (!uid) return
+    const seq = ++patientLoadSeq.current
+    activeUidRef.current = uid
+    setLoading(true)
+    clearPatientScopedState()
     
     try {
-      // 1. Fetch Timeline
+      // 1. Fetch Timeline (this patient only)
       const timelineRes = await fetch(`${BASE_URL}/api/patients/${uid}/timeline`)
+      if (seq !== patientLoadSeq.current) return
       if (!timelineRes.ok) {
         throw new Error("Patient not found")
       }
       const timelineData = await timelineRes.json()
+      if (seq !== patientLoadSeq.current) return
       setActivePatient(timelineData.patient)
       setTimeline(timelineData.timeline)
       setPatientId(uid)
 
-      // 2. Fetch AI Brief
-      await fetchBriefOnly(uid, activeSummaryMode, activeSpecialty, diseaseFocus, currentVisitReason)
+      // 2. Fetch auto-detected clinical contexts for this patient only
+      const ctxRes = await fetch(`${BASE_URL}/api/patients/${uid}/clinical-contexts`)
+      if (seq !== patientLoadSeq.current) return
+      let nextMode = 'complete'
+      let nextContextId = null
+      let nextContexts = []
+      if (ctxRes.ok) {
+        const ctxData = await ctxRes.json()
+        nextContexts = ctxData.contexts || []
+        nextContextId = ctxData.default_context_id || (nextContexts.length === 1 ? nextContexts[0].id : null)
+        if (nextContextId) {
+          nextMode = 'disease'
+        }
+      }
+      setClinicalContexts(nextContexts)
+      setSelectedContextId(nextContextId)
+      setActiveSummaryMode(nextMode)
+      setContextsLoaded(true)
 
       // 3. Fetch Active Claims
       const claimsRes = await fetch(`${BASE_URL}/api/claims/patient/${uid}`)
+      if (seq !== patientLoadSeq.current) return
       if (claimsRes.ok) {
         const claimsData = await claimsRes.json()
         // If there are claims, audit the first one to get the checklist
         if (claimsData.length > 0) {
           const auditRes = await fetch(`${BASE_URL}/api/claims/${claimsData[0].id}`)
+          if (seq !== patientLoadSeq.current) return
           if (auditRes.ok) {
             const auditData = await auditRes.json()
             setClaims([auditData])
@@ -219,41 +379,89 @@ function App() {
       // Update patient lookup list in background
       fetchPatientsList()
     } catch (err) {
+      if (seq !== patientLoadSeq.current) return
       alert("Error: " + err.message)
-      setActivePatient(null)
-      setTimeline([])
-      setClinicalBrief(null)
-      setClaims([])
+      clearPatientScopedState()
+      fetchPatientsList()
     } finally {
-      setLoading(false)
+      if (seq === patientLoadSeq.current) {
+        setLoading(false)
+      }
     }
   }
 
-  const fetchBriefOnly = async (uid, mode, specialty, disease, reason) => {
+  const fetchBriefOnly = async (uid, mode, specialty, disease, reason, seq = patientLoadSeq.current) => {
+    const timer = setTimeout(() => {
+      if (seq === patientLoadSeq.current && activeUidRef.current === uid) {
+        setBriefLoading(true)
+      }
+    }, 250)
+
     try {
       let url = `${BASE_URL}/api/patients/${uid}/brief?summary_type=${mode}&specialty=${specialty}`
       if (disease && mode === 'disease') url += `&disease_focus=${encodeURIComponent(disease)}`
       if (reason && mode === 'current_visit') url += `&current_visit_reason=${encodeURIComponent(reason)}`
       
       const briefRes = await fetch(url)
+      clearTimeout(timer)
+      if (seq !== patientLoadSeq.current || activeUidRef.current !== uid) return
       if (briefRes.ok) {
         const briefData = await briefRes.json()
+        if (seq !== patientLoadSeq.current || activeUidRef.current !== uid) return
         setClinicalBrief(briefData)
+        setBriefLoading(false)
       } else {
         const errData = await briefRes.json()
         console.error("Failed to load clinical brief:", errData.detail)
+        setBriefLoading(false)
       }
     } catch (err) {
+      clearTimeout(timer)
       console.error("Failed to load clinical brief:", err)
+      if (seq === patientLoadSeq.current && activeUidRef.current === uid) {
+        setBriefLoading(false)
+      }
     }
   }
 
-  // Refetch brief if medical specialty, summary mode, or details change
-  useEffect(() => {
-    if (activePatient?.id) {
-      fetchBriefOnly(activePatient.id, activeSummaryMode, activeSpecialty, diseaseFocus, currentVisitReason)
+  const applyClinicalContext = (context) => {
+    if (!activePatient?.id || !context) return
+    setSelectedContextId(context.id)
+    setActiveSummaryMode('disease')
+    setShowExcludedHistory(false)
+  }
+
+  const handleGenerateAndDownloadSummary = async (mode, disease = '') => {
+    if (!activePatient?.id) return
+    setDownloadingSummary(true)
+    try {
+      let url = `${BASE_URL}/api/patients/${activePatient.id}/brief?summary_type=${mode}&specialty=General`
+      if (mode === 'disease' && disease) {
+        url += `&disease_focus=${encodeURIComponent(disease)}`
+      }
+      const res = await fetch(url)
+      if (res.ok) {
+        const briefData = await res.json()
+        downloadBriefPDF(activePatient, briefData)
+        setShowSummarySelector(false)
+      } else {
+        alert("Failed to generate clinical summary.")
+      }
+    } catch (err) {
+      console.error("Failed to download summary:", err)
+      alert("Error: " + err.message)
+    } finally {
+      setDownloadingSummary(false)
     }
-  }, [activePatient?.id, activeSummaryMode, activeSpecialty, diseaseFocus, currentVisitReason])
+  }
+
+  // Refetch brief when the active patient, context, or summary mode changes
+  useEffect(() => {
+    if (!activePatient?.id || !contextsLoaded) return
+    const selected = clinicalContexts.find(c => c.id === selectedContextId)
+    const disease = activeSummaryMode === 'disease' ? (selected?.label || '') : ''
+    fetchBriefOnly(activePatient.id, activeSummaryMode, activeSpecialty, disease, currentVisitReason)
+  }, [activePatient?.id, activeSummaryMode, activeSpecialty, currentVisitReason, contextsLoaded, selectedContextId])
 
   // Handle Patient Registration
   const handleRegister = async (e) => {
@@ -426,12 +634,12 @@ function App() {
 
   // Get active test names present in timeline for selector dropdown
   const getAvailableTestNames = () => {
-    const names = new Set(['Glucose', 'HbA1c', 'BP (Systolic)'])
+    const names = new Set()
     timeline.forEach(record => {
       const results = record.parsed_json?.lab_results
       if (results && Array.isArray(results)) {
         results.forEach(test => {
-          names.add(test.test_name)
+          if (test.test_name) names.add(test.test_name)
         })
       }
     })
@@ -714,28 +922,56 @@ function App() {
                     </div>
 
                     {/* AI Clinical Brief */}
-                    {clinicalBrief ? (
+                    {activePatient && timeline.length === 0 ? (
+                      <div className="flex-1 overflow-y-auto pr-1 space-y-4 pt-4 border-t border-slate-100">
+                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Clinical Context</span>
+                          <p className="text-sm font-semibold text-slate-700">No clinical conditions identified yet.</p>
+                          <p className="text-xs text-slate-500 mt-1">Upload a medical record to build the patient's clinical context.</p>
+                        </div>
+                      </div>
+                    ) : clinicalBrief ? (
                       <div className="flex-1 overflow-y-auto pr-1 space-y-4 pt-4 border-t border-slate-100">
                         
+                        {/* Automatic Clinical Context chips */}
+                        <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-lg space-y-2">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block px-0.5">Clinical Context</span>
+                          {clinicalContexts.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {clinicalContexts.map(ctx => (
+                                <button
+                                  key={ctx.id}
+                                  onClick={() => applyClinicalContext(ctx)}
+                                  className={`text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all select-none ${
+                                    selectedContextId === ctx.id && activeSummaryMode === 'disease'
+                                      ? 'bg-teal-600 text-white shadow-sm'
+                                      : 'bg-white text-slate-700 hover:text-slate-900 border border-slate-200'
+                                  }`}
+                                >
+                                  {ctx.label}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-500 px-0.5">
+                              No ongoing clinical conditions identified. Resolved short-term episodes remain in the medical timeline.
+                            </p>
+                          )}
+                        </div>
+
                         {/* Summary Mode Selector Tab Group */}
                         <div className="bg-slate-50 border border-slate-200 p-1 rounded-lg space-y-2">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block px-1">Clinical Summary Mode</span>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block px-1">Additional Views</span>
                           <div className="flex flex-wrap gap-1">
                             {[
-                              { id: 'complete', label: 'Complete' },
-                              { id: 'recent', label: 'Recent' },
-                              { id: 'current_visit', label: 'Current Visit' },
-                              { id: 'disease', label: 'Disease Specific' },
-                              { id: 'specialty', label: 'Specialty Focus' },
-                              { id: 'emergency', label: 'Emergency' }
+                              { id: 'complete', label: 'Complete History' },
+                              { id: 'recent', label: 'Recent' }
                             ].map(mode => (
                               <button
                                 key={mode.id}
                                 onClick={() => {
                                   setActiveSummaryMode(mode.id);
-                                  if (mode.id === 'specialty' && activeSpecialty === 'General') {
-                                    setActiveSpecialty('Cardiology');
-                                  }
+                                  setSelectedContextId(null);
                                 }}
                                 className={`text-[10px] font-bold px-2 py-1 rounded transition-all select-none ${
                                   activeSummaryMode === mode.id 
@@ -758,20 +994,6 @@ function App() {
                               value={currentVisitReason} 
                               onChange={(e) => setCurrentVisitReason(e.target.value)}
                               placeholder="e.g., Sore throat, routine diabetes checkup, chest pain" 
-                              className="w-full text-xs border border-slate-200 rounded px-2 py-1 bg-white focus:outline-none focus:border-teal-500 text-slate-700"
-                            />
-                          </div>
-                        )}
-
-                        {/* Target Disease Focus Input (Conditional) */}
-                        {activeSummaryMode === 'disease' && (
-                          <div className="bg-teal-50/50 border border-teal-100/50 rounded-lg p-2.5 space-y-1.5">
-                            <span className="text-[10px] font-bold text-teal-800 uppercase tracking-wider block">Target Disease Focus</span>
-                            <input 
-                              type="text" 
-                              value={diseaseFocus} 
-                              onChange={(e) => setDiseaseFocus(e.target.value)}
-                              placeholder="e.g., Diabetes, Hypertension, Typhoid, Sore Throat" 
                               className="w-full text-xs border border-slate-200 rounded px-2 py-1 bg-white focus:outline-none focus:border-teal-500 text-slate-700"
                             />
                           </div>
@@ -817,11 +1039,13 @@ function App() {
                         {/* Summary paragraph */}
                         <div>
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                            15-Second Clinical Summary ({activeSummaryMode === 'specialty' ? `${activeSpecialty} View` : activeSummaryMode.replace('_', ' ').toUpperCase()})
+                            {activeSummaryMode === 'disease' && selectedContextId
+                              ? `${(clinicalContexts.find(c => c.id === selectedContextId)?.label || 'Condition')} Summary`
+                              : activeSummaryMode === 'specialty'
+                                ? `${activeSpecialty} View`
+                                : 'Clinical Summary'}
                           </span>
-                          <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-200">
-                            {clinicalBrief.clinical_summary}
-                          </p>
+                          {renderClinicalSummary(clinicalBrief.clinical_summary)}
                         </div>
 
                         {/* Active Problems */}
@@ -871,15 +1095,28 @@ function App() {
                           <div className="space-y-1.5 pt-2 border-t border-slate-100">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Relevant Timeline Records</span>
                             <div className="space-y-1.5">
-                              {clinicalBrief.relevance_metrics.filter(r => r.relevance === 'High').map((r, idx) => (
+                              {clinicalBrief.relevance_metrics.filter(r => r.relevance === 'High').map((r, idx) => {
+                                const source = timeline.find(t => t.id === r.record_id)
+                                return (
                                 <div key={idx} className="bg-emerald-50/20 border border-emerald-100/50 rounded-lg p-2 flex items-start gap-2">
                                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                                  <div className="text-xs">
+                                  <div className="text-xs flex-1">
                                     <strong className="text-slate-800 font-semibold block">{r.record_title}</strong>
                                     <span className="text-slate-500 italic text-[11px] block mt-0.5">{r.explanation}</span>
+                                    {source?.file_path && (
+                                      <a
+                                        href={getFileUrl(source.file_path)}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-[10px] font-bold text-teal-700 hover:underline mt-1 inline-block"
+                                      >
+                                        Open supporting document [Record #{source.id}]
+                                      </a>
+                                    )}
                                   </div>
                                 </div>
-                              ))}
+                                )
+                              })}
                             </div>
                           </div>
                         )}
@@ -910,10 +1147,12 @@ function App() {
                         )}
 
                       </div>
-                  ) : (
+                  ) : briefLoading ? (
                     <div className="flex-1 flex flex-col justify-center">
                       <p className="text-xs text-slate-400 mt-4 text-center">Reading historical EMR to generate brief...</p>
                     </div>
+                  ) : (
+                    <div className="flex-1"></div>
                   )}
 
                 </div>
@@ -1120,9 +1359,9 @@ function App() {
               
               {/* Patient Welcome Hero */}
               {activePatient ? (
-                <div className="bg-primary-dark text-white rounded-2xl p-8 shadow-md relative overflow-hidden">
+                <div className="bg-primary-dark text-white rounded-2xl p-8 shadow-md relative z-20">
                   {/* Subtle decorative background shapes */}
-                  <div className="absolute right-0 bottom-0 top-0 w-1/3 bg-gradient-to-l from-teal-500/20 to-transparent pointer-events-none"></div>
+                  <div className="absolute right-0 bottom-0 top-0 w-1/3 bg-gradient-to-l from-teal-500/20 to-transparent pointer-events-none rounded-r-2xl"></div>
                   
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
                     <div>
@@ -1132,12 +1371,68 @@ function App() {
                         Access your unified health timeline, track cashless claims, and view insurance checkup benefits.
                       </p>
                       {clinicalBrief && (
-                        <button 
-                          onClick={() => downloadBriefPDF(activePatient, clinicalBrief)}
-                          className="mt-4 flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md shrink-0 w-fit"
-                        >
-                          <FileText className="w-4.5 h-4.5" /> Print / Download Clinical Summary
-                        </button>
+                        <div className="relative">
+                          <button 
+                            onClick={() => setShowSummarySelector(!showSummarySelector)}
+                            disabled={downloadingSummary}
+                            className="mt-4 flex items-center gap-2 bg-teal-650 hover:bg-teal-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md shrink-0 w-fit disabled:opacity-70 disabled:cursor-not-allowed"
+                          >
+                            {downloadingSummary ? (
+                              <RefreshCw className="w-4.5 h-4.5 animate-spin" />
+                            ) : (
+                              <FileText className="w-4.5 h-4.5" />
+                            )}
+                            {downloadingSummary ? "Generating Summary..." : "Print / Download Clinical Summary"}
+                          </button>
+
+                          {showSummarySelector && (
+                            <div className="absolute left-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl p-4 w-72 z-50 space-y-3 text-slate-800 animate-in fade-in slide-in-from-top-2 duration-150">
+                              <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Choose Summary</span>
+                                <button 
+                                  onClick={() => setShowSummarySelector(false)}
+                                  className="text-slate-400 hover:text-slate-650 text-xs font-bold"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                              <div className="space-y-1.5">
+                                <button
+                                  onClick={() => handleGenerateAndDownloadSummary('complete')}
+                                  disabled={downloadingSummary}
+                                  className="w-full text-left bg-slate-50 hover:bg-slate-100 border border-slate-250 rounded-lg p-2 flex flex-col transition-all cursor-pointer disabled:opacity-50"
+                                >
+                                  <span className="text-xs font-bold text-slate-700">Complete History</span>
+                                  <span className="text-[9px] text-slate-400 mt-0.5">Full health timeline summary</span>
+                                </button>
+                                <button
+                                  onClick={() => handleGenerateAndDownloadSummary('recent')}
+                                  disabled={downloadingSummary}
+                                  className="w-full text-left bg-slate-50 hover:bg-slate-100 border border-slate-250 rounded-lg p-2 flex flex-col transition-all cursor-pointer disabled:opacity-50"
+                                >
+                                  <span className="text-xs font-bold text-slate-700">Recent Updates</span>
+                                  <span className="text-[9px] text-slate-400 mt-0.5">Recent clinical changes & medication updates</span>
+                                </button>
+                                {clinicalContexts.length > 0 && (
+                                  <div className="border-t border-slate-100 pt-2 space-y-1.5">
+                                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">Conditions</span>
+                                    {clinicalContexts.map(ctx => (
+                                      <button
+                                        key={ctx.id}
+                                        onClick={() => handleGenerateAndDownloadSummary('disease', ctx.label)}
+                                        disabled={downloadingSummary}
+                                        className="w-full text-left bg-slate-50 hover:bg-slate-100 border border-slate-250 rounded-lg p-2 flex flex-col transition-all cursor-pointer disabled:opacity-50"
+                                      >
+                                        <span className="text-xs font-bold text-teal-700">{ctx.label} Focus</span>
+                                        <span className="text-[9px] text-slate-400 mt-0.5">Longitudinal {ctx.label} summary</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
 

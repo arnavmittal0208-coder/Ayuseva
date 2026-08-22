@@ -44,3 +44,21 @@ class Claim(Base):
 
     # Relationship
     patient = relationship("Patient", back_populates="claims")
+
+
+class ClinicalBrief(Base):
+    __tablename__ = "clinical_briefs"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    patient_id = Column(String, ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
+    summary_type = Column(String, nullable=False)
+    specialty = Column(String, nullable=False)
+    disease_focus = Column(String, nullable=True)
+    current_visit_reason = Column(String, nullable=True)
+    records_hash = Column(String, nullable=False)
+    brief_json = Column(JSON, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    patient = relationship("Patient")

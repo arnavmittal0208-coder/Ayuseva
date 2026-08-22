@@ -35,18 +35,47 @@ def generate_clinical_brief(
 
     ### Target Summary Configuration:
     - Summary Mode: {summary_type}
-      (Modes available:
-       - 'current_visit': Focus only on details matching the Reason for Current Visit.
-       - 'disease': Focus on the longitudinal history of the Disease/Condition focus.
-       - 'specialty': Focus on conditions relevant to the Target Specialty.
-       - 'longitudinal': Focus on how conditions developed, progressed, or resolved over time.
-       - 'recent': Focus primarily on recent events (e.g. latest records).
-       - 'emergency': Focus strictly on critical warnings, allergies, active medications, and acute conditions.
-       - 'complete': General summary of all historical records.)
+      (Modes available and their clinical guidance:
+       
+       - 'complete': Compile a meaningful longitudinal clinical history of the patient.
+         * Tell a cohesive, doctor-friendly chronological story showing the progression of active, chronic, or ongoing conditions, AND recent clusters of clinical activity.
+         * Prioritize diagnoses, prescriptions, treatment continuation, repeated occurrences, and how events connect over time.
+         * Include recent resolved/acute episodes (like a viral fever from 10 days ago) if they occurred close in time to other recent evaluations, as they represent part of the patient's recent clinical story.
+         * Omit or heavily de-emphasize minor resolved short-term illnesses only if they are genuinely old (e.g. >3 months ago) and have no connection to current care.
+         * Structure the `clinical_summary` chronologically, listing each key event with its date, findings, and treatment. E.g.:
+           - [Date] — [Event/Diagnosis]: [Key Findings & Treatment]
+           Followed by a short paragraph summarizing the patient's overall clinical progression.
+
+       - 'recent': Summarize only what has recently changed in the patient's care.
+         * Highlight recent diagnoses, updated prescriptions, new lab results, recent physician visits, and medication modifications.
+         * Do not use a strict date cutoff (like 'last 15 days'); rather, combine chronological recency with clinical relevance (e.g., a medication dose change 30 days ago is highly relevant, whereas a resolved minor complaint 10 days ago is not).
+
+       - 'disease': Focus strictly on the longitudinal history of the selected Clinical Context: {disease_focus if disease_focus else 'None'}.
+         * Structure the `clinical_summary` chronologically using these sections:
+           
+           [Disease/Condition Name] SUMMARY
+           
+           Overview
+           [A short explanation of the patient's current status for this condition.]
+           
+           CLINICAL PROGRESSION
+           - [Date] — [Event/Diagnosis/Treatment]: [Key findings, test results, diagnoses, or prescriptions from that record.]
+           - [Date] — [Event/Diagnosis/Treatment]: [Details from subsequent records showing the progression/treatment.]
+           
+           CURRENT STATUS
+           * Current Diagnosis: [Diagnosis name as per records]
+           * Current Medications: [Active medications with doses/frequencies]
+           * Recent Tests: [Most recent lab values, e.g., HbA1c]
+           
+         * Include ALL records provided in the context; do not focus only on the latest prescription record. Chronologically link them from initial diagnostic evaluation to follow-up/treatment.
+         * Do not invent information; do not say the condition is "long-standing" unless records explicitly state this.
+      )
     
     - Target Specialty: {specialty}
-    - Disease/Condition Focus: {disease_focus if disease_focus else 'None'}
+    - Selected Clinical Context: {disease_focus if disease_focus else 'None'}
     - Reason for Current Visit: {current_visit_reason if current_visit_reason else 'None'}
+
+    The JSON below contains the records to be processed. Do not invent other conditions.
     
     ### Medical History JSON Context:
     {records_json_str}
@@ -58,7 +87,7 @@ def generate_clinical_brief(
     {{
         "specialty": "String",
         "summary_type": "String",
-        "clinical_summary": "String (A high-level paragraph summarizing only the clinically relevant history based on the summary configuration)",
+        "clinical_summary": "String (For 'complete' mode, provide a detailed chronological timeline list followed by an overall progression summary. For other modes, provide a concise paragraph.)",
         "active_problems": [
             "String (A bulleted list of active problems, e.g., 'Hypertension diagnosed on 2025-06-10 [Record #1]')"
         ],
@@ -92,9 +121,13 @@ def generate_clinical_brief(
     ### Strict Clinical Guidance:
     1. Relevance Classifications:
        - You MUST classify EVERY record in the provided context inside the `relevance_metrics` list.
-       - If a record is relevant to the selected mode/specialty/disease, mark it as `"High"`.
-       - If a record represents a resolved minor episode (e.g., a simple cold/fever from months ago) and has no connection to the current visit, mark it as `"Low"` and explain why it was excluded.
-       - If an older record (e.g. fever) is connected to a later diagnosis (e.g. typhoid), mark it as `"High"` because it represents disease progression.
+       - If Mode is 'complete':
+         * Mark a record as 'High' if it represents a chronic or ongoing condition (e.g. Diabetes, Hypertension), or if it is part of a recent cluster of clinical activity (e.g. occurring close in time to other recent records, even if it is a resolved viral fever/symptom).
+         * Mark a record as 'Low' ONLY if it is an isolated, resolved episode from a long time ago (e.g. >3 months ago) with no recurrence or current clinical connection.
+       - If Mode is 'disease':
+         * Mark a record as 'High' if it is directly relevant to the selected context.
+       - If Mode is 'recent':
+         * Mark a record as 'High' if it represents a recent change, prescription, or visit.
     2. Maintain citations: Every active problem, warning, and current medication entry MUST reference the source Record ID in brackets (e.g. `[Record #3]`).
     3. Cross-record validation:
        - Check for drug-allergy interactions.
@@ -130,6 +163,14 @@ def generate_clinical_brief(
         end_idx = cleaned_text.rfind('}')
         if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
             cleaned_text = cleaned_text[start_idx:end_idx+1]
+        
+        # Clean common LLM formatting issues (e.g. multiline strings quoted with backticks)
+        import re
+        def replace_backtick_string(match):
+            content = match.group(1)
+            content_escaped = content.replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r')
+            return f': "{content_escaped}"'
+        cleaned_text = re.sub(r':\s*`([^`]*)`', replace_backtick_string, cleaned_text)
         
         brief_data = json.loads(cleaned_text.strip())
         return brief_data

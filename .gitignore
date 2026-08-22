@@ -16,3 +16,4 @@ backend/uploads/*
 .vscode/
 .idea/
 .agents/
+health_platform.db
