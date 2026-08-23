@@ -16,6 +16,292 @@ const formatToIndianDate = (text) => {
   return str.replace(/\b(\d{4})[-:]\s*(\d{2})[-:]\s*(\d{2})\b/g, '$3-$2-$1');
 };
 
+const parseRawPythonOrJson = (str) => {
+  if (typeof str !== 'string') return null;
+  const trimmed = str.trim();
+  const cleanStr = trimmed.replace(/^[-*\d.]+\s*/, '').trim();
+  
+  if ((cleanStr.startsWith('{') && cleanStr.endsWith('}')) || (cleanStr.startsWith('[') && cleanStr.endsWith(']'))) {
+    try {
+      const sanitized = cleanStr
+        .replace(/'/g, '"')
+        .replace(/\bNone\b/g, 'null')
+        .replace(/\bTrue\b/g, 'true')
+        .replace(/\bFalse\b/g, 'false');
+      return JSON.parse(sanitized);
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+};
+
+const parseMedicationItem = (item) => {
+  if (!item) return { name: 'N/A', dosage: 'N/A', frequency: 'N/A' };
+  
+  if (typeof item === 'object') {
+    return {
+      name: item.name || item.Name || 'N/A',
+      dosage: item.dosage || item.Dosage || 'N/A',
+      frequency: item.frequency || item.Frequency || 'N/A',
+      source: item.source || item.Source || ''
+    };
+  }
+  
+  if (typeof item === 'string') {
+    const parsed = parseRawPythonOrJson(item);
+    if (parsed && typeof parsed === 'object') {
+      return {
+        name: parsed.name || parsed.Name || 'N/A',
+        dosage: parsed.dosage || parsed.Dosage || 'N/A',
+        frequency: parsed.frequency || parsed.Frequency || 'N/A',
+        source: parsed.source || parsed.Source || ''
+      };
+    }
+    return {
+      name: item,
+      dosage: 'N/A',
+      frequency: 'N/A'
+    };
+  }
+  
+  return { name: 'N/A', dosage: 'N/A', frequency: 'N/A' };
+};
+
+const parseActiveProblemItem = (item) => {
+  if (!item) return '';
+  if (typeof item === 'object') {
+    return item.name || item.diagnosis || item.problem || JSON.stringify(item);
+  }
+  if (typeof item === 'string') {
+    const parsed = parseRawPythonOrJson(item);
+    if (parsed && typeof parsed === 'object') {
+      return parsed.name || parsed.diagnosis || parsed.problem || JSON.stringify(parsed);
+    }
+    return item;
+  }
+  return String(item);
+};
+
+const renderParsedDataReact = (data, idx) => {
+  if (!data) return null;
+  
+  if (Array.isArray(data)) {
+    return (
+      <div key={idx} className="space-y-1 mt-1">
+        {data.map((item, subIdx) => renderParsedDataReact(item, subIdx))}
+      </div>
+    );
+  }
+  
+  if (typeof data === 'object') {
+    const getField = (keys) => {
+      for (const k of keys) {
+        const foundKey = Object.keys(data).find(ok => ok.toLowerCase() === k.toLowerCase());
+        if (foundKey) return data[foundKey];
+      }
+      return null;
+    };
+    
+    const dateVal = formatToIndianDate(getField(['date', 'time', 'record_date']));
+    const eventVal = getField(['event', 'diagnosis', 'title', 'name']);
+    
+    const detailsList = [];
+    Object.entries(data).forEach(([k, v]) => {
+      const kl = k.toLowerCase();
+      if (!['date', 'time', 'record_date', 'event', 'diagnosis', 'title', 'name'].includes(kl)) {
+        if (v !== null && v !== undefined && String(v).trim()) {
+          const cleanK = k.replace(/_/g, ' ').replace(/key findings/gi, 'findings');
+          detailsList.push(`${cleanK}: ${formatToIndianDate(String(v))}`);
+        }
+      }
+    });
+    
+    const detailsStr = detailsList.join(', ');
+    
+    return (
+      <div key={idx} className="text-xs text-slate-700 leading-relaxed font-normal py-0.5">
+        {dateVal && <strong className="text-slate-800 font-bold">{dateVal}: </strong>}
+        {eventVal && <span className="font-semibold text-slate-700">{eventVal}</span>}
+        {detailsStr && <span className="text-slate-600">{eventVal ? `: ${detailsStr}` : detailsStr}</span>}
+      </div>
+    );
+  }
+  
+  return <p key={idx} className="text-xs text-slate-655 leading-relaxed py-0.5">{String(data)}</p>;
+};
+
+const renderParsedDataHTML = (data) => {
+  if (!data) return '';
+  
+  if (Array.isArray(data)) {
+    return data.map(item => renderParsedDataHTML(item)).join('');
+  }
+  
+  if (typeof data === 'object') {
+    const getField = (keys) => {
+      for (const k of keys) {
+        const foundKey = Object.keys(data).find(ok => ok.toLowerCase() === k.toLowerCase());
+        if (foundKey) return data[foundKey];
+      }
+      return null;
+    };
+    
+    const dateVal = formatToIndianDate(getField(['date', 'time', 'record_date']));
+    const eventVal = getField(['event', 'diagnosis', 'title', 'name']);
+    
+    const detailsList = [];
+    Object.entries(data).forEach(([k, v]) => {
+      const kl = k.toLowerCase();
+      if (!['date', 'time', 'record_date', 'event', 'diagnosis', 'title', 'name'].includes(kl)) {
+        if (v !== null && v !== undefined && String(v).trim()) {
+          const cleanK = k.replace(/_/g, ' ').replace(/key findings/gi, 'findings');
+          detailsList.push(`${cleanK}: ${formatToIndianDate(String(v))}`);
+        }
+      }
+    });
+    
+    const detailsStr = detailsList.join(', ');
+    
+    let html = `<div style="font-size: 11px; color: #334155; margin: 3px 0; line-height: 1.5;">`;
+    if (dateVal) {
+      html += `<strong style="color: #1e293b; font-weight: bold;">${dateVal}: </strong>`;
+    }
+    if (eventVal) {
+      html += `<span style="font-weight: 600; color: #334155;">${eventVal}</span>`;
+    }
+    if (detailsStr) {
+      html += `<span style="color: #475569;">${eventVal ? `: ${detailsStr}` : detailsStr}</span>`;
+    }
+    html += `</div>`;
+    return html;
+  }
+  
+  return `<p style="font-size: 11px; color: #334155; margin: 3px 0;">${String(data)}</p>`;
+};
+
+const parseInlineDictOrList = (line) => {
+  if (typeof line !== 'string') return null;
+  const trimmed = line.trim();
+  
+  const startIdx = trimmed.indexOf('[');
+  const startObjIdx = trimmed.indexOf('{');
+  
+  let jsonStart = -1;
+  if (startIdx !== -1 && startObjIdx !== -1) {
+    jsonStart = Math.min(startIdx, startObjIdx);
+  } else {
+    jsonStart = startIdx !== -1 ? startIdx : startObjIdx;
+  }
+  
+  if (jsonStart !== -1) {
+    const prefix = trimmed.substring(0, jsonStart).trim().replace(/^[-*\d.]+\s*/, '').trim();
+    const possibleJson = trimmed.substring(jsonStart).trim();
+    
+    const parsed = parseRawPythonOrJson(possibleJson);
+    if (parsed) {
+      return { prefix, parsed };
+    }
+  }
+  return null;
+};
+
+const renderInlineParsedReact = (prefix, parsed, idx) => {
+  if (!parsed) return null;
+  const cleanPrefix = prefix ? prefix.replace(/:$/, '').trim() : '';
+  
+  const formatObj = (item) => {
+    if (typeof item === 'object' && item !== null) {
+      const name = item.name || item.Name || '';
+      const dosage = item.dosage || item.Dosage || '';
+      const frequency = item.frequency || item.Frequency || '';
+      
+      const parts = [name, dosage, frequency].map(p => String(p).trim()).filter(Boolean);
+      return parts.join(' — ');
+    }
+    return String(item);
+  };
+  
+  if (Array.isArray(parsed)) {
+    return (
+      <div key={idx} className="text-xs text-slate-705 leading-relaxed font-normal py-0.5">
+        {cleanPrefix && <strong className="text-slate-800 font-bold block mb-0.5">{cleanPrefix}:</strong>}
+        <div className="pl-3 space-y-0.5">
+          {parsed.map((item, subIdx) => (
+            <div key={subIdx}>
+              • {formatObj(item)}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  
+  if (typeof parsed === 'object') {
+    return (
+      <div key={idx} className="text-xs text-slate-705 leading-relaxed font-normal py-0.5">
+        {cleanPrefix && <strong className="text-slate-800 font-bold">{cleanPrefix}: </strong>}
+        {Object.entries(parsed).map(([k, v], subIdx) => (
+          <span key={subIdx} className="mr-2">
+            <strong className="capitalize text-slate-800">{k.replace(/_/g, ' ')}:</strong> {formatToIndianDate(String(v))}
+          </span>
+        ))}
+      </div>
+    );
+  }
+  
+  return (
+    <div key={idx} className="text-xs text-slate-705 leading-relaxed py-0.5">
+      {cleanPrefix && <strong className="text-slate-800 font-bold">{cleanPrefix}: </strong>}
+      {String(parsed)}
+    </div>
+  );
+};
+
+const renderInlineParsedHTML = (prefix, parsed) => {
+  if (!parsed) return '';
+  const cleanPrefix = prefix ? prefix.replace(/:$/, '').trim() : '';
+  
+  const formatObj = (item) => {
+    if (typeof item === 'object' && item !== null) {
+      const name = item.name || item.Name || '';
+      const dosage = item.dosage || item.Dosage || '';
+      const frequency = item.frequency || item.Frequency || '';
+      
+      const parts = [name, dosage, frequency].map(p => String(p).trim()).filter(Boolean);
+      return parts.join(' — ');
+    }
+    return String(item);
+  };
+  
+  if (Array.isArray(parsed)) {
+    let html = `<div style="font-size: 11px; color: #334155; margin: 3px 0; line-height: 1.5;">`;
+    if (cleanPrefix) {
+      html += `<strong style="color: #1e293b; display: block; margin-bottom: 2px;">${cleanPrefix}:</strong>`;
+    }
+    html += `<div style="padding-left: 10px;">`;
+    parsed.forEach(item => {
+      html += `<div>&bull; ${formatObj(item)}</div>`;
+    });
+    html += `</div></div>`;
+    return html;
+  }
+  
+  if (typeof parsed === 'object') {
+    let html = `<div style="font-size: 11px; color: #334155; margin: 3px 0; line-height: 1.5;">`;
+    if (cleanPrefix) {
+      html += `<strong style="color: #1e293b; font-weight: bold;">${cleanPrefix}: </strong>`;
+    }
+    Object.entries(parsed).forEach(([k, v]) => {
+      html += `<span style="margin-right: 8px;"><strong style="text-transform: capitalize; color: #334155;">${k.replace(/_/g, ' ')}:</strong> ${formatToIndianDate(String(v))}</span>`;
+    });
+    html += `</div>`;
+    return html;
+  }
+  
+  return `<div style="font-size: 11px; color: #334155; margin: 3px 0;"><strong>${cleanPrefix}:</strong> ${String(parsed)}</div>`;
+};
+
 const getTodayIndianDate = () => {
   const d = new Date();
   const day = String(d.getDate()).padStart(2, '0');
@@ -80,10 +366,16 @@ const parseSections = (summary) => {
 
   return sections;
 };
-
 const formatPDFSummary = (summary) => {
   if (!summary) return '';
   
+  if (typeof summary === 'string') {
+    const parsed = parseRawPythonOrJson(summary);
+    if (parsed) {
+      return renderParsedDataHTML(parsed);
+    }
+  }
+
   if (Array.isArray(summary)) {
     return summary.map(item => `
       <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 8px; font-size: 13px;">
@@ -114,6 +406,16 @@ const formatPDFSummary = (summary) => {
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; font-size: 11px; line-height: 1.6; color: #334155;">
         `;
         section.items.forEach(line => {
+          const inlineParsed = parseInlineDictOrList(line);
+          if (inlineParsed && inlineParsed.prefix) {
+            html += renderInlineParsedHTML(inlineParsed.prefix, inlineParsed.parsed);
+            return;
+          }
+          const parsedLine = parseRawPythonOrJson(line);
+          if (parsedLine) {
+            html += renderParsedDataHTML(parsedLine);
+            return;
+          }
           const isBullet = line.startsWith('-') || line.startsWith('*') || /^\d+\./.test(line);
           const cleanLine = formatToIndianDate(line.replace(/^[-*\d.]+\s*/, '').trim());
           
@@ -154,6 +456,14 @@ const formatPDFSummary = (summary) => {
 
 const renderClinicalSummary = (summary) => {
   if (!summary) return null;
+
+  // Pre-parse stringified objects/arrays
+  if (typeof summary === 'string') {
+    const parsed = parseRawPythonOrJson(summary);
+    if (parsed) {
+      return renderParsedDataReact(parsed, 0);
+    }
+  }
 
   if (typeof summary === 'object' && summary !== null && !Array.isArray(summary)) {
     return (
@@ -225,6 +535,15 @@ const renderClinicalSummary = (summary) => {
             {section.items.length > 0 && (
               <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
                 {section.items.map((line, lIdx) => {
+                  const inlineParsed = parseInlineDictOrList(line);
+                  if (inlineParsed && inlineParsed.prefix) {
+                    return renderInlineParsedReact(inlineParsed.prefix, inlineParsed.parsed, lIdx);
+                  }
+                  const parsedLine = parseRawPythonOrJson(line);
+                  if (parsedLine) {
+                    return renderParsedDataReact(parsedLine, lIdx);
+                  }
+                  
                   const isBullet = line.startsWith('-') || line.startsWith('*') || /^\d+\./.test(line);
                   const cleanLine = formatToIndianDate(line.replace(/^[-*\d.]+\s*/, '').trim());
                   
@@ -266,7 +585,6 @@ const renderClinicalSummary = (summary) => {
     </p>
   );
 };
-
 const downloadBriefPDF = (patient, brief) => {
   if (!patient || !brief) return;
   const printWindow = window.open('', '_blank');
@@ -315,7 +633,7 @@ const downloadBriefPDF = (patient, brief) => {
       
       <div class="section-title">Active Diagnoses</div>
       <ul style="font-size: 13px; color: #334155; margin-left: 20px; padding: 0;">
-        ${brief.active_problems.map(p => `<li style="margin-bottom: 4px;">${p}</li>`).join('')}
+        ${brief.active_problems.map(p => `<li style="margin-bottom: 4px;">${parseActiveProblemItem(p)}</li>`).join('')}
       </ul>
 
       <div class="section-title">Active Prescriptions</div>
@@ -328,13 +646,16 @@ const downloadBriefPDF = (patient, brief) => {
           </tr>
         </thead>
         <tbody>
-          ${brief.current_medications && brief.current_medications.length > 0 ? brief.current_medications.map(m => `
-            <tr>
-              <td><strong>${m.name}</strong></td>
-              <td>${m.dosage || 'N/A'}</td>
-              <td>${m.frequency || 'N/A'}</td>
-            </tr>
-          `).join('') : '<tr><td colspan="3" style="text-align: center; color: #94a3b8;">No active medications found in EMR.</td></tr>'}
+          ${brief.current_medications && brief.current_medications.length > 0 ? brief.current_medications.map(item => {
+            const m = parseMedicationItem(item);
+            return `
+              <tr>
+                <td><strong>${m.name}</strong></td>
+                <td>${m.dosage}</td>
+                <td>${m.frequency}</td>
+              </tr>
+            `;
+          }).join('') : '<tr><td colspan="3" style="text-align: center; color: #94a3b8;">No active medications found in EMR.</td></tr>'}
         </tbody>
       </table>
 
@@ -3250,7 +3571,7 @@ function App() {
                       <div className="flex flex-wrap gap-1.5">
                         {clinicalBrief.active_problems.map((p, idx) => (
                           <span key={idx} className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200 font-medium">
-                            {p}
+                            {parseActiveProblemItem(p)}
                           </span>
                         ))}
                       </div>
@@ -3271,13 +3592,16 @@ function App() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
-                            {clinicalBrief.current_medications.map((m, idx) => (
-                              <tr key={idx} className="hover:bg-slate-50">
-                                <td className="px-3 py-2 font-mono font-medium text-slate-700">{m.name}</td>
-                                <td className="px-3 py-2 text-slate-500">{m.dosage || 'N/A'}</td>
-                                <td className="px-3 py-2 text-slate-500">{m.frequency || 'N/A'}</td>
-                              </tr>
-                            ))}
+                            {clinicalBrief.current_medications.map((item, idx) => {
+                              const m = parseMedicationItem(item);
+                              return (
+                                <tr key={idx} className="hover:bg-slate-50">
+                                  <td className="px-3 py-2 font-mono font-medium text-slate-700">{m.name}</td>
+                                  <td className="px-3 py-2 text-slate-500">{m.dosage}</td>
+                                  <td className="px-3 py-2 text-slate-500">{m.frequency}</td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>

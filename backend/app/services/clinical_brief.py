@@ -42,32 +42,44 @@ def generate_clinical_brief(
          * Prioritize diagnoses, prescriptions, treatment continuation, repeated occurrences, and how events connect over time.
          * Include recent resolved/acute episodes (like a viral fever from 10 days ago) if they occurred close in time to other recent evaluations, as they represent part of the patient's recent clinical story.
          * Omit or de-emphasize minor resolved short-term illnesses only if they are genuinely old (e.g. >3 months ago) and have no connection to current care.
-         * Structure the `clinical_summary` chronologically, listing each key event with its date, findings, and treatment. E.g.:
-           - [Date] — [Event/Diagnosis]: [Key Findings & Treatment]
-           Followed by a paragraph summarizing the patient's overall clinical progression.
-           Ensure the level of detail is dynamically adjusted: simple cases are concise, while complex longitudinal cases are fully detailed.
+         * Structure the `clinical_summary` using these exact section headers:
+            
+            OVERVIEW
+            [Provide a concise, high-level synthesis of the patient's current clinical picture. It should cover the most important overall facts a doctor should know. For simple cases, keep it to 2-3 concise sentences. For complex cases, it may be moderately longer (e.g. 1-2 paragraphs) but still should not reproduce the detailed progression.]
+            
+            CLINICAL PROGRESSION
+            - [Date] — [Event/Diagnosis]: [Key Findings & Treatment]
+            - [Date] — [Event/Diagnosis]: [Key Findings & Treatment]
+            (A chronological list of all relevant medical events, diagnoses, lab investigations, procedures, or medication/treatment changes from the actual records.)
+            
+            Ensure the level of detail is dynamically adjusted: simple cases are concise, while complex longitudinal cases are fully detailed.
 
        - 'recent': Summarize what has recently changed in the patient's care.
          * Highlight recent diagnoses, updated prescriptions, new lab results, recent physician visits, and medication modifications.
          * Do not use a strict date cutoff (like 'last 15 days'); rather, combine chronological recency with clinical relevance (e.g., a medication dose change 30 days ago is highly relevant, whereas a resolved minor complaint 10 days ago is not).
-         * Provide sufficient detail for complex changes, and keep simple updates brief.
+         * Structure the `clinical_summary` using these exact section headers:
+            
+            OVERVIEW
+            [Provide a concise, high-level synthesis of the patient's recent changes. For simple updates, keep it to 1-2 concise sentences. For complex changes, it may be a short paragraph.]
+            
+            CLINICAL PROGRESSION
+            - [Date] — [Event/Diagnosis/Treatment]: [Detailed key findings, test results, diagnoses, or prescriptions from that record.]
+            - [Date] — [Event/Diagnosis/Treatment]: [Details from subsequent records showing the progression/treatment.]
 
        - 'disease': Focus strictly on the longitudinal history of the selected Clinical Context: {disease_focus if disease_focus else 'None'}.
-         * Structure the `clinical_summary` chronologically using these sections:
-           
-           [Disease/Condition Name] SUMMARY
-           
-           Overview
-           [A dynamic, case-dependent synthesis of the patient's overall condition and progression. Do NOT enforce a fixed word count or sentence limit. For simple cases, keep it to 2-3 concise sentences summarizing status. For complex cases with multiple records, diagnoses, medications, lab investigations, or clinical progression, expand the overview into a moderately longer, detail-rich clinical synthesis (e.g. 1-2 robust paragraphs) summarizing diagnostic findings, treatment changes, and the overall trajectory of the condition. Focus on summarizing the overall case rather than repeating just a single record, highlighting key clinical landmarks. Keep it practical, clinical, and factual without inventing any information.]
-           
-           CLINICAL PROGRESSION
-           - [Date] — [Event/Diagnosis/Treatment]: [Detailed key findings, test results, diagnoses, or prescriptions from that record.]
-           - [Date] — [Event/Diagnosis/Treatment]: [Details from subsequent records showing the progression/treatment.]
-           
-           CURRENT STATUS
-           * Current Diagnosis: [Diagnosis name as per records]
-           * Current Medications: [Active medications with doses/frequencies]
-           
+         * Structure the `clinical_summary` using these exact section headers:
+            
+            OVERVIEW
+            [Provide a concise, high-level synthesis of the patient's overall status for this condition/context. It should cover the most important facts a doctor should know. For simple cases, keep it to 2-3 sentences. For complex cases, it may be moderately longer (e.g. 1-2 paragraphs) but still should not reproduce the detailed progression.]
+            
+            CLINICAL PROGRESSION
+            - [Date] — [Event/Diagnosis/Treatment]: [Detailed key findings, test results, diagnoses, or prescriptions from that record.]
+            - [Date] — [Event/Diagnosis/Treatment]: [Details from subsequent records showing the progression/treatment.]
+            
+            CURRENT STATUS
+            * Current Diagnosis: [Diagnosis name as per records]
+            * Current Medications: [Active medications with doses/frequencies]
+            
          * Include ALL records provided in the context; do not focus only on the latest prescription record. Chronologically link them from initial diagnostic evaluation to follow-up/treatment.
          * Do not invent information; do not say the condition is "long-standing" unless records explicitly state this.
       )
@@ -78,13 +90,13 @@ def generate_clinical_brief(
 
     The JSON below contains the records to be processed. Do not invent other conditions. Everything in the summary must come from the actual records.
     
-    ### Clinical Overview Generation Principles:
-    - **Dynamic Case-Dependent Length**: Do NOT enforce a fixed word count, character limit, or fixed number of sentences. Adjust length based on case complexity.
-    - **Concise vs. Detailed**: 
-      * For a simple or limited clinical case, keep the summary highly concise (e.g. 2-3 sentences) focusing on key diagnostic findings and treatment.
-      * For a complex clinical case with multiple records, diagnoses, medications, procedures, or ongoing progression, allow the summary to scale dynamically and become moderately longer (e.g. 1-2 detail-rich paragraphs) to convey a complete longitudinal picture. Avoid making it unnecessarily verbose.
-    - **Synthesize Overall Case**: Summarize the overall case and clinical landmarks rather than repeating only one document.
-    - **Factual Integrity**: Do not invent facts or assume timelines (e.g. "long-standing") unless explicitly documented in the records.
+    ### Clinical Summary Structure & Generation Principles:
+    - **Required Structural Sections**: The output `clinical_summary` MUST contain both section headers `OVERVIEW` and `CLINICAL PROGRESSION` (and `CURRENT STATUS` for 'disease' mode) in uppercase. Do not omit or merge them.
+    - **Section Boundaries**:
+       * **OVERVIEW**: Provide a concise, high-level synthesis of the patient's current clinical picture. It must remain a summary synthesis, NOT a chronological timeline. For simple cases, keep it to 2-3 concise sentences. For complex cases, it may be moderately longer (e.g. 1-2 paragraphs) but must still not reproduce the chronological events or list progression details.
+       * **CLINICAL PROGRESSION**: A separate, chronological, bulleted list containing the clinical development of the condition/context. Preserve exact dates, diagnoses/findings, laboratory/investigation values, procedures, and medication/treatment changes over time.
+    - **Dynamic Case-Dependent Detail**: Do NOT enforce a fixed word count or character limit. Simple cases should have very concise entries; complex cases with multiple records, lab reports, or medication changes should be sufficiently detailed.
+    - **Factual Integrity**: Never invent facts. Base all details strictly on the provided medical history records.
     
     ### Medical History JSON Context:
     {records_json_str}
@@ -96,7 +108,7 @@ def generate_clinical_brief(
     {{
         "specialty": "String",
         "summary_type": "String",
-        "clinical_summary": "String (A clinically relevant synthesis of the patient's medical history, overview, progression, symptoms, laboratory/imaging findings, treatments, and procedures. This must follow the 'Clinical Overview Generation Principles' dynamically: concise for simple cases, and moderately detailed for complex cases, ensuring a doctor can understand the overall clinical picture without opening every document.)",
+        "clinical_summary": "String (A clinically relevant synthesis of the patient's medical history containing separate OVERVIEW and CLINICAL PROGRESSION headers. This must follow the 'Clinical Summary Structure & Generation Principles' dynamically: concise for simple cases, and moderately detailed for complex cases, ensuring a doctor can understand both the overall clinical picture and the chronological development over time.)",
         "active_problems": [
             "String (A bulleted list of active problems, e.g., 'Hypertension diagnosed on 2025-06-10 [Record #1]')"
         ],
