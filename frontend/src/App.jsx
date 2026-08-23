@@ -694,6 +694,28 @@ const downloadBriefPDF = (patient, brief) => {
 }
 
 function App() {
+  // Toast & Notifications System
+  const [toasts, setToasts] = useState([]);
+  
+  const showToast = (message, type = 'success') => {
+    const id = Date.now() + Math.random();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  };
+
+  const alert = (message) => {
+    const msgLower = String(message).toLowerCase();
+    let type = 'success';
+    if (msgLower.includes('error') || msgLower.includes('fail') || msgLower.includes('unable') || msgLower.includes('please') || msgLower.includes('invalid') || msgLower.includes('cancellation')) {
+      type = 'error';
+    } else if (msgLower.includes('warning') || msgLower.includes('alert') || msgLower.includes('first')) {
+      type = 'warning';
+    }
+    showToast(message, type);
+  };
+
   // Authentication & Layout States
   const [userRole, setUserRole] = useState(() => localStorage.getItem('userRole') || null) // null | 'admin' | 'patient'
   const [adminUsername, setAdminUsername] = useState(() => localStorage.getItem('adminUsername') || '')
@@ -5532,6 +5554,51 @@ function App() {
           {adminView === 'insurance' && renderAdminInsurance()}
         </div>
       </main>
+
+      {/* Toast Notification Container */}
+      <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+        {toasts.map(toast => {
+          const isError = toast.type === 'error';
+          const isWarning = toast.type === 'warning';
+          
+          return (
+            <div 
+              key={toast.id} 
+              className={`pointer-events-auto bg-white border rounded-xl p-3 shadow-lg flex items-start gap-2.5 transition-all duration-300 animate-in slide-in-from-bottom-4 fade-in ${
+                isError ? 'border-rose-100' : 'border-slate-200'
+              }`}
+            >
+              {isError ? (
+                <div className="bg-rose-50 p-1.5 rounded-lg text-rose-600 shrink-0">
+                  <XCircle className="w-4 h-4" />
+                </div>
+              ) : isWarning ? (
+                <div className="bg-amber-50 p-1.5 rounded-lg text-amber-600 shrink-0">
+                  <AlertTriangle className="w-4 h-4" />
+                </div>
+              ) : (
+                <div className="bg-teal-50 p-1.5 rounded-lg text-teal-600 shrink-0">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0 pt-0.5">
+                <p className="text-xs font-semibold text-slate-800 leading-tight capitalize">
+                  {toast.type}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-1 whitespace-pre-line leading-relaxed">
+                  {toast.message}
+                </p>
+              </div>
+              <button 
+                onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
+                className="text-slate-400 hover:text-slate-600 shrink-0 text-[10px] font-bold p-0.5 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          );
+        })}
+      </div>
 
     </div>
   )
