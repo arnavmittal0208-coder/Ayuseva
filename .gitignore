@@ -1,19 +1,55 @@
-# Dependencies
-frontend/node_modules/
+# OS and editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.agents/
+
+# Python environments and caches
 backend/.venv/
-backend/.env
-
-# Local Database & Uploads
-backend/health_platform.db
-backend/uploads/*
-!backend/uploads/.gitkeep
-
-# Python cache files
+backend/venv/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.ruff_cache/
 **/__pycache__/
 **/*.pyc
+**/*.pyo
+**/*.pyd
 
-# Editor configurations
-.vscode/
-.idea/
-.agents/
+# Node and frontend build output
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+frontend/*.local
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Local databases and runtime data
+*.db
+*.sqlite
+*.sqlite3
 health_platform.db
+backend/health_platform.db
+backend/test_health_platform.db
+
+# Uploaded and generated files with potential PHI
+uploads/
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/uploads/personal/*
+backend/uploads/supporting_claims/*
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp

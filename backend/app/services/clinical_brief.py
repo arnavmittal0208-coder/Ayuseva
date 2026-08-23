@@ -41,14 +41,16 @@ def generate_clinical_brief(
          * Tell a cohesive, doctor-friendly chronological story showing the progression of active, chronic, or ongoing conditions, AND recent clusters of clinical activity.
          * Prioritize diagnoses, prescriptions, treatment continuation, repeated occurrences, and how events connect over time.
          * Include recent resolved/acute episodes (like a viral fever from 10 days ago) if they occurred close in time to other recent evaluations, as they represent part of the patient's recent clinical story.
-         * Omit or heavily de-emphasize minor resolved short-term illnesses only if they are genuinely old (e.g. >3 months ago) and have no connection to current care.
+         * Omit or de-emphasize minor resolved short-term illnesses only if they are genuinely old (e.g. >3 months ago) and have no connection to current care.
          * Structure the `clinical_summary` chronologically, listing each key event with its date, findings, and treatment. E.g.:
            - [Date] — [Event/Diagnosis]: [Key Findings & Treatment]
-           Followed by a short paragraph summarizing the patient's overall clinical progression.
+           Followed by a paragraph summarizing the patient's overall clinical progression.
+           Ensure the level of detail is dynamically adjusted: simple cases are concise, while complex longitudinal cases are fully detailed.
 
-       - 'recent': Summarize only what has recently changed in the patient's care.
+       - 'recent': Summarize what has recently changed in the patient's care.
          * Highlight recent diagnoses, updated prescriptions, new lab results, recent physician visits, and medication modifications.
          * Do not use a strict date cutoff (like 'last 15 days'); rather, combine chronological recency with clinical relevance (e.g., a medication dose change 30 days ago is highly relevant, whereas a resolved minor complaint 10 days ago is not).
+         * Provide sufficient detail for complex changes, and keep simple updates brief.
 
        - 'disease': Focus strictly on the longitudinal history of the selected Clinical Context: {disease_focus if disease_focus else 'None'}.
          * Structure the `clinical_summary` chronologically using these sections:
@@ -56,16 +58,15 @@ def generate_clinical_brief(
            [Disease/Condition Name] SUMMARY
            
            Overview
-           [A short explanation of the patient's current status for this condition.]
+           [An explanation of the patient's current status for this condition. Detail-rich if complex, concise if simple.]
            
            CLINICAL PROGRESSION
-           - [Date] — [Event/Diagnosis/Treatment]: [Key findings, test results, diagnoses, or prescriptions from that record.]
+           - [Date] — [Event/Diagnosis/Treatment]: [Detailed key findings, test results, diagnoses, or prescriptions from that record.]
            - [Date] — [Event/Diagnosis/Treatment]: [Details from subsequent records showing the progression/treatment.]
            
            CURRENT STATUS
            * Current Diagnosis: [Diagnosis name as per records]
            * Current Medications: [Active medications with doses/frequencies]
-           * Recent Tests: [Most recent lab values, e.g., HbA1c]
            
          * Include ALL records provided in the context; do not focus only on the latest prescription record. Chronologically link them from initial diagnostic evaluation to follow-up/treatment.
          * Do not invent information; do not say the condition is "long-standing" unless records explicitly state this.
@@ -75,7 +76,7 @@ def generate_clinical_brief(
     - Selected Clinical Context: {disease_focus if disease_focus else 'None'}
     - Reason for Current Visit: {current_visit_reason if current_visit_reason else 'None'}
 
-    The JSON below contains the records to be processed. Do not invent other conditions.
+    The JSON below contains the records to be processed. Do not invent other conditions. Everything in the summary must come from the actual records.
     
     ### Medical History JSON Context:
     {records_json_str}
@@ -87,7 +88,7 @@ def generate_clinical_brief(
     {{
         "specialty": "String",
         "summary_type": "String",
-        "clinical_summary": "String (For 'complete' mode, provide a detailed chronological timeline list followed by an overall progression summary. For other modes, provide a concise paragraph.)",
+        "clinical_summary": "String (This summary must represent the clinically relevant patient overview, history, progression, symptoms, laboratory/imaging findings, treatments, and procedures. Adjust the length and level of detail dynamically based on the complexity of the case: simple cases should be clear and concise, while complex longitudinal cases with many records must be fully detailed, highlighting progression over time, treatment changes, and current status. A visiting doctor should be able to read this summary and understand the clinical picture without having to open every individual document. Do not restrict the summary to a single concise paragraph if the case is complex.)",
         "active_problems": [
             "String (A bulleted list of active problems, e.g., 'Hypertension diagnosed on 2025-06-10 [Record #1]')"
         ],
@@ -172,7 +173,7 @@ def generate_clinical_brief(
             return f': "{content_escaped}"'
         cleaned_text = re.sub(r':\s*`([^`]*)`', replace_backtick_string, cleaned_text)
         
-        brief_data = json.loads(cleaned_text.strip())
+        brief_data = json.loads(cleaned_text.strip(), strict=False)
         return brief_data
     except Exception as e:
         raise ValueError(f"Failed to parse NVIDIA NIM response as JSON: {str(e)}. Raw content: {response_text}")

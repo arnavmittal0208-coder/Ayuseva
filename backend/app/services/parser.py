@@ -13,7 +13,7 @@ def clean_and_parse_json(text: str) -> dict:
     json_match = re.search(r'```json\s*(\{.*?\})\s*```', cleaned, re.DOTALL)
     if json_match:
         try:
-            return json.loads(json_match.group(1).strip())
+            return json.loads(json_match.group(1).strip(), strict=False)
         except Exception:
             pass
 
@@ -21,7 +21,7 @@ def clean_and_parse_json(text: str) -> dict:
     json_match = re.search(r'```\s*(\{.*?\})\s*```', cleaned, re.DOTALL)
     if json_match:
         try:
-            return json.loads(json_match.group(1).strip())
+            return json.loads(json_match.group(1).strip(), strict=False)
         except Exception:
             pass
 
@@ -30,12 +30,12 @@ def clean_and_parse_json(text: str) -> dict:
     end_idx = cleaned.rfind('}')
     if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
         try:
-            return json.loads(cleaned[start_idx:end_idx+1].strip())
+            return json.loads(cleaned[start_idx:end_idx+1].strip(), strict=False)
         except Exception:
             pass
 
     # Fallback to direct parse
-    return json.loads(cleaned)
+    return json.loads(cleaned, strict=False)
 
 def parse_medical_document(file_bytes: bytes, mime_type: str) -> dict:
     """

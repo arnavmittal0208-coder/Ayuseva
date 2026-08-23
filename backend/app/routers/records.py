@@ -73,34 +73,117 @@ async def upload_medical_record(
             os.remove(file_path)
         raise HTTPException(status_code=500, detail=f"AI Ingestion failed: {str(e)}")
 
+    # Persistent clinical context matching using AI reasoning
+    from app.models import ClinicalContext
+    from app.services.claims_ai import match_document_to_clinical_context
+
+    existing_contexts = db.query(ClinicalContext).filter(ClinicalContext.patient_id == patient_id).all()
+    existing_contexts_data = [
+        {"id": c.id, "name": c.name, "kind": c.kind, "first_date": c.first_date, "latest_date": c.latest_date, "reason": c.reason}
+        for c in existing_contexts
+    ]
+
+    try:
+        match_res = match_document_to_clinical_context(existing_contexts_data, parsed_data)
+    except Exception as e:
+        print(f"[INGEST MATCH ERROR] Failed to match context via AI: {e}")
+        match_res = {
+            "matched_context_id": None, 
+            "suggested_context_name": parsed_data.get("record_type", "Medical Episode"), 
+            "suggested_context_kind": "acute_active", 
+            "reason": "AI match exception fallback"
+        }
+
+    matched_id = match_res.get("matched_context_id")
+    if matched_id:
+        db_ctx = db.query(ClinicalContext).filter(ClinicalContext.id == matched_id).first()
+        r_date = parsed_data.get("date")
+        if r_date:
+            if not db_ctx.first_date or r_date < db_ctx.first_date:
+                db_ctx.first_date = r_date
+            if not db_ctx.latest_date or r_date > db_ctx.latest_date:
+                db_ctx.latest_date = r_date
+        db.commit()
+    else:
+        # Create a new persistent clinical context
+        name = match_res.get("suggested_context_name") or parsed_data.get("record_type") or "Medical Episode"
+        kind = match_res.get("suggested_context_kind") or "acute_active"
+        reason = match_res.get("reason") or ""
+        r_date = parsed_data.get("date")
+        
+        db_ctx = ClinicalContext(
+            patient_id=patient_id,
+            name=name,
+            kind=kind,
+            first_date=r_date,
+            latest_date=r_date,
+            reason=reason
+        )
+        db.add(db_ctx)
+        db.commit()
+        db.refresh(db_ctx)
+
     # Save Record entry
     new_record = Record(
         patient_id=patient_id,
         record_type=parsed_data.get("record_type", "Other"),
         date=parsed_data.get("date"),
         file_path=f"uploads/{safe_filename}",
-        parsed_json=parsed_data
+        parsed_json=parsed_data,
+        clinical_context_id=db_ctx.id
     )
     db.add(new_record)
+    db.commit()
+    db.refresh(new_record)
 
-    # Check for surgery advice to scaffold a Claim
+    # Check for surgery advice to scaffold/update a cashless Claim
     if parsed_data.get("surgery_advised"):
         details = parsed_data.get("procedure_details", {}) or {}
         procedure_name = details.get("name") or "Advised Surgical Procedure"
         estimated_cost = details.get("estimated_cost")
         
-        # Scaffold a new Claim under draft status
-        new_claim = Claim(
-            patient_id=patient_id,
-            procedure_name=procedure_name,
-            estimated_cost=estimated_cost,
-            status="Draft",
-            missing_documents=["Identity Proof", "Doctor Prescription Note", "Surgery Estimate Sheet"]
-        )
-        db.add(new_claim)
-
-    db.commit()
-    db.refresh(new_record)
+        active_policy = db.query(InsurancePolicy).filter(
+            InsurancePolicy.patient_id == patient_id,
+            InsurancePolicy.status == "Active"
+        ).first()
+        policy_id = active_policy.id if active_policy else None
+        
+        # Check if cashless claim already exists for UID + active policy + clinical context
+        existing_claim = db.query(Claim).filter(
+            Claim.patient_id == patient_id,
+            Claim.policy_id == policy_id,
+            Claim.clinical_context_id == db_ctx.id,
+            (Claim.status == "Draft") | (Claim.status == "Failed") | (Claim.status == "Ready for Review") | (Claim.status == "Missing Information")
+        ).first()
+        
+        if existing_claim:
+            # Reuse and update existing cashless claim draft
+            existing_claim.procedure_name = procedure_name
+            if estimated_cost is not None:
+                try:
+                    existing_claim.estimated_cost = float(estimated_cost)
+                except:
+                    pass
+            sel = existing_claim.selected_records or []
+            if new_record.id not in sel:
+                sel.append(new_record.id)
+            existing_claim.selected_records = sel
+            db.commit()
+        else:
+            # Scaffold a new Claim under draft status
+            new_claim = Claim(
+                patient_id=patient_id,
+                policy_id=policy_id,
+                clinical_context_id=db_ctx.id,
+                clinical_context=db_ctx.name,
+                procedure_name=procedure_name,
+                estimated_cost=estimated_cost,
+                status="Draft",
+                selected_records=[new_record.id],
+                missing_documents=["Identity Proof", "Doctor Prescription Note", "Surgery Estimate Sheet"]
+            )
+            db.add(new_claim)
+            db.commit()
 
     return {
         "message": "File processed successfully.",

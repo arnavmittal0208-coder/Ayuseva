@@ -19,6 +19,7 @@ class Patient(Base):
     insurance_policies = relationship("InsurancePolicy", back_populates="patient", cascade="all, delete-orphan")
     personal_documents = relationship("PersonalDocument", back_populates="patient", cascade="all, delete-orphan")
     scheduled_checkups = relationship("ScheduledCheckup", back_populates="patient", cascade="all, delete-orphan")
+    clinical_contexts = relationship("ClinicalContext", back_populates="patient", cascade="all, delete-orphan")
 
 class Record(Base):
     __tablename__ = "records"
@@ -30,9 +31,11 @@ class Record(Base):
     file_path = Column(String, nullable=True) # Path to stored PDF/Image file
     parsed_json = Column(JSON, nullable=True) # Extracted clinical data (conditions, meds, lab values)
     created_at = Column(DateTime, default=datetime.utcnow)
+    clinical_context_id = Column(Integer, ForeignKey("clinical_contexts.id", ondelete="SET NULL"), nullable=True)
 
     # Relationship
     patient = relationship("Patient", back_populates="records")
+    clinical_context = relationship("ClinicalContext", back_populates="records")
 
 class Claim(Base):
     __tablename__ = "claims"
@@ -44,9 +47,42 @@ class Claim(Base):
     status = Column(String, default="Draft") # Draft, Submitted, Approved, Rejected
     missing_documents = Column(JSON, nullable=True) # Array of missing files/requirements
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Cashless claim additions
+    policy_id = Column(Integer, ForeignKey("insurance_policies.id", ondelete="CASCADE"), nullable=True)
+    clinical_context = Column(String, nullable=True)
+    selected_records = Column(JSON, nullable=True) # Array of record IDs (e.g. [1, 2, 5])
+    policy_check_status = Column(String, nullable=True) # e.g. Appears Eligible, Needs Review
+    policy_check_details = Column(JSON, nullable=True) # JSON object containing coverage details & exclusions
+    missing_info = Column(JSON, nullable=True) # Array of strings indicating missing details/docs
+    generated_form_data = Column(JSON, nullable=True) # JSON object containing form fields
+    email_preview = Column(JSON, nullable=True) # JSON object containing recipient, subject, body
+    insurer_response = Column(String, nullable=True) # Simulated insurer comments/reasons
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    clinical_context_id = Column(Integer, ForeignKey("clinical_contexts.id", ondelete="SET NULL"), nullable=True)
+    supporting_documents = Column(JSON, nullable=True)
 
-    # Relationship
+    # Relationships
     patient = relationship("Patient", back_populates="claims")
+    clinical_context_rel = relationship("ClinicalContext", back_populates="claims")
+
+
+class ClinicalContext(Base):
+    __tablename__ = "clinical_contexts"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    patient_id = Column(String, ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String, nullable=False)
+    kind = Column(String, default="chronic_ongoing") # chronic_ongoing, acute_active, acute_resolved
+    first_date = Column(String, nullable=True)
+    latest_date = Column(String, nullable=True)
+    reason = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    patient = relationship("Patient", back_populates="clinical_contexts")
+    records = relationship("Record", back_populates="clinical_context")
+    claims = relationship("Claim", back_populates="clinical_context_rel")
 
 
 class ClinicalBrief(Base):

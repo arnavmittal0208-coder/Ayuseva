@@ -4,9 +4,9 @@ from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import Patient, Record, Claim, ClinicalBrief
+from app.models import Patient, Record, Claim, ClinicalBrief, ClinicalContext
 from app.services.clinical_brief import generate_clinical_brief
-from app.services.clinical_context import detect_clinical_contexts, records_for_context
+from app.services.clinical_context import records_for_context
 
 router = APIRouter(prefix="/api/patients", tags=["patients"])
 
@@ -121,22 +121,52 @@ def get_clinical_contexts(
     db: Session = Depends(get_db)
 ):
     """
-    Automatically detect clinically relevant contexts for THIS patient only.
-    Does not hard-code diseases and never reads another patient's records.
+    Fetches the persistent, database-backed clinical contexts (episodes) for this patient.
     """
     patient = db.query(Patient).filter(Patient.id == uid).first()
     if not patient:
         raise HTTPException(status_code=404, detail=f"Patient with ID {uid} not found.")
 
-    records = db.query(Record).filter(Record.patient_id == uid, Record.record_type != "INSURANCE_POLICY").order_by(Record.date.asc()).all()
-    detection = detect_clinical_contexts(
-        _serialize_records(records),
-        current_visit_reason=current_visit_reason,
-    )
+    contexts = db.query(ClinicalContext).filter(ClinicalContext.patient_id == uid).all()
+    
+    contexts_list = []
+    from datetime import datetime
+    for ctx in contexts:
+        contexts_list.append({
+            "id": ctx.id,
+            "label": ctx.name,
+            "kind": ctx.kind,
+            "first_date": ctx.first_date,
+            "latest_date": ctx.latest_date,
+            "reason": ctx.reason,
+            "record_ids": [r.id for r in ctx.records],
+            "related_record_ids": []
+        })
+
+    # Sort contexts by latest_date desc
+    def parse_dt(d_str):
+        if not d_str:
+            return 0
+        try:
+            return datetime.strptime(d_str, "%Y-%m-%d").timestamp()
+        except:
+            return 0
+
+    contexts_list = sorted(contexts_list, key=lambda c: -parse_dt(c.get("latest_date")))
+
+    default_id = None
+    if contexts_list:
+        default_id = contexts_list[0]["id"]
+        if current_visit_reason:
+            for c in contexts_list:
+                if current_visit_reason.lower() in c["label"].lower():
+                    default_id = c["id"]
+                    break
+
     return {
         "patient_id": uid,
-        "contexts": detection["contexts"],
-        "default_context_id": detection["default_context_id"],
+        "contexts": contexts_list,
+        "default_context_id": default_id,
     }
 
 
@@ -150,8 +180,8 @@ def get_clinical_brief(
     db: Session = Depends(get_db)
 ):
     """
-    Generates an AI clinical brief for a patient based on their complete EMR history,
-    filtered dynamically according to relevance rules, summary modes, warnings, and citations.
+    Generates an AI clinical brief for a patient based on their EMR history,
+    scoped dynamically to the selected persistent clinical context when summary_type is 'disease'.
     """
     patient = db.query(Patient).filter(Patient.id == uid).first()
     if not patient:
@@ -173,17 +203,25 @@ def get_clinical_brief(
         }
 
     records_list = _serialize_records(records)
-    detection = detect_clinical_contexts(records_list, current_visit_reason=current_visit_reason)
+    
     selected_context = None
     if disease_focus:
-        focus_norm = disease_focus.strip().lower()
-        for ctx in detection["contexts"]:
-            if ctx["id"] == focus_norm.replace(" ", "-") or ctx["label"].strip().lower() == focus_norm:
-                selected_context = ctx
-                break
-        if selected_context is None:
+        # Find persistent context by name/label
+        db_ctx = db.query(ClinicalContext).filter(
+            ClinicalContext.patient_id == uid,
+            ClinicalContext.name == disease_focus
+        ).first()
+        if db_ctx:
             selected_context = {
-                "id": focus_norm.replace(" ", "-"),
+                "id": db_ctx.id,
+                "label": db_ctx.name,
+                "kind": db_ctx.kind,
+                "record_ids": [r.id for r in db_ctx.records],
+                "related_record_ids": []
+            }
+        else:
+            selected_context = {
+                "id": 999999,
                 "label": disease_focus.strip(),
                 "kind": "requested",
                 "record_ids": [],
@@ -192,9 +230,10 @@ def get_clinical_brief(
 
     ai_records = records_list
     if summary_type == "disease" and selected_context:
-        ai_records = records_for_context(records_list, selected_context)
+        # Include records in this context plus records with allergies for safety
+        focused_records = [r for r in records if r.clinical_context_id == selected_context["id"] or (r.parsed_json and r.parsed_json.get("allergies"))]
+        ai_records = _serialize_records(focused_records)
 
-    # Cache key setup
     records_hash = _calculate_records_hash(records_list)
     resolved_disease_focus = selected_context["label"] if selected_context else disease_focus
 
@@ -210,7 +249,7 @@ def get_clinical_brief(
         print("CLINICAL BRIEF CACHE HIT: Returning cached summary.", flush=True)
         return cached.brief_json
     else:
-        print(f"CLINICAL BRIEF CACHE MISS. Current hash: {records_hash}, Cached hash: {cached.records_hash if cached else 'None'}", flush=True)
+        print(f"CLINICAL BRIEF CACHE MISS. Current hash: {records_hash}", flush=True)
 
     try:
         brief_data = generate_clinical_brief(
@@ -237,7 +276,20 @@ def get_clinical_brief(
             else:
                 brief_data["clinical_summary"] = str(summary_obj) if summary_obj is not None else ""
 
-        brief_data["clinical_contexts"] = detection["contexts"]
+        contexts_db = db.query(ClinicalContext).filter(ClinicalContext.patient_id == uid).all()
+        contexts_list = []
+        for c_db in contexts_db:
+            contexts_list.append({
+                "id": c_db.id,
+                "label": c_db.name,
+                "kind": c_db.kind,
+                "first_date": c_db.first_date,
+                "latest_date": c_db.latest_date,
+                "reason": c_db.reason,
+                "record_ids": [r.id for r in c_db.records],
+                "related_record_ids": []
+            })
+        brief_data["clinical_contexts"] = contexts_list
         brief_data["selected_context"] = selected_context["label"] if selected_context else None
         
         # Reconcile excluded records in relevance_metrics

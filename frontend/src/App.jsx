@@ -431,6 +431,12 @@ function App() {
   const [archiveConfirmPolicyId, setArchiveConfirmPolicyId] = useState(null)
   const [showAllHistoryModal, setShowAllHistoryModal] = useState(false)
   const [deleteConfirmPolicyId, setDeleteConfirmPolicyId] = useState(null)
+
+  // Cashless Claims State hooks
+  const [activeClaim, setActiveClaim] = useState(null)
+  const [isCreatingClaim, setIsCreatingClaim] = useState(false)
+  const [claimInitializing, setClaimInitializing] = useState(false)
+  const [claimSubmitting, setClaimSubmitting] = useState(false)
   
   // Preventive checkups State hooks
   const [checkups, setCheckups] = useState([])
@@ -675,6 +681,10 @@ function App() {
     setShowSummarySelector(false)
     setDownloadingSummary(false)
     setBriefLoading(false)
+    setActiveClaim(null)
+    setIsCreatingClaim(false)
+    setClaimInitializing(false)
+    setClaimSubmitting(false)
   }
 
   // Restore Patient Session from localStorage
@@ -899,18 +909,9 @@ function App() {
       if (seq !== patientLoadSeq.current) return
       if (claimsRes.ok) {
         const claimsData = await claimsRes.json()
-        if (claimsData.length > 0) {
-          const auditRes = await fetch(`${BASE_URL}/api/claims/${claimsData[0].id}`)
-          if (seq !== patientLoadSeq.current) return
-          if (auditRes.ok) {
-            const auditData = await auditRes.json()
-            setClaims([auditData])
-          } else {
-            setClaims(claimsData)
-          }
-        } else {
-          setClaims([])
-        }
+        setClaims(claimsData || [])
+      } else {
+        setClaims([])
       }
       
       // 4. Fetch Insurance Profile
@@ -1005,7 +1006,17 @@ function App() {
   // Refetch brief when the active patient, context, or summary mode changes
   useEffect(() => {
     if (!activePatient?.id || !contextsLoaded) return
+    
+    // Safeguard: Ensure the selectedContextId belongs to the current patient's clinical contexts
     const selected = clinicalContexts.find(c => c.id === selectedContextId)
+    
+    // If summary mode is disease-focused but selected context is not yet loaded/resolved,
+    // suppress execution until states synchronize.
+    if (activeSummaryMode === 'disease' && !selected) {
+      console.log("[REACT STATE GUARD] Suppressing brief fetch: selectedContextId is stale.");
+      return
+    }
+
     const disease = activeSummaryMode === 'disease' ? (selected?.label || '') : ''
     fetchBriefOnly(activePatient.id, activeSummaryMode, activeSpecialty, disease, currentVisitReason)
   }, [activePatient?.id, activeSummaryMode, activeSpecialty, currentVisitReason, contextsLoaded, selectedContextId])
@@ -3253,84 +3264,7 @@ function App() {
           {/* Right Column: Claims, Timeline & Deletion Confirmation (Col 3) */}
           <div className="xl:col-span-3 space-y-6">
             
-            {/* Cashless Claims Audit Card */}
-            {claims.length > 0 ? (
-              claims.map(c => (
-                <div key={c.claim_id || c.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider text-slate-500">Surgery Cashless pre-Auth</h3>
-                    <span className="text-[11px] font-mono font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-705">
-                      ₹{c.estimated_cost?.toLocaleString()}
-                    </span>
-                  </div>
-                  
-                  <p className="text-xs text-slate-700 font-bold mb-3">{c.procedure_name}</p>
-                  
-                  {/* Document Audit Checklist */}
-                  <ul className="space-y-2 text-[11px] text-slate-600">
-                    {c.audit_checklist ? (
-                      Object.entries(c.audit_checklist).map(([doc, present]) => (
-                        <li key={doc} className={`flex items-start gap-2 p-1.5 rounded border transition-colors ${
-                          present ? "bg-emerald-50/50 border-emerald-100 text-emerald-800" : "bg-rose-50/50 border-rose-100 text-rose-800"
-                        }`}>
-                          {present ? (
-                            <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                          ) : (
-                            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
-                          )}
-                          <div className="flex-1 leading-tight">
-                            <span className="font-semibold block">{doc}</span>
-                            <span className="text-[8.5px] text-slate-405 text-slate-500 block mt-0.5">
-                              {present ? "Evidence validated" : "Required attachment missing"}
-                            </span>
-                          </div>
-                        </li>
-                      ))
-                    ) : (
-                      <p className="text-[10px] text-slate-400">Claims audit logs loading...</p>
-                    )}
-                  </ul>
-                  
-                  {/* Email dispatch buttons */}
-                  {c.status && (
-                    <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
-                      <input 
-                        type="email"
-                        placeholder="TPA Insurer Email"
-                        defaultValue="claims-tpa@healthinsurance.com"
-                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs bg-slate-50 focus:outline-none focus:border-teal-500 text-slate-800"
-                      />
-                      <button 
-                        onClick={() => handleSubmitClaim(c.claim_id || c.id)}
-                        disabled={loading || (c.missing_documents && c.missing_documents.length > 0)}
-                        className={`w-full py-2 rounded text-[11px] font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 text-white cursor-pointer ${
-                          c.status === "Submitted" ? "bg-emerald-600 hover:bg-emerald-700" :
-                          (c.missing_documents && c.missing_documents.length > 0) ? "bg-slate-300 cursor-not-allowed text-slate-450" : "bg-primary-dark hover:bg-slate-800"
-                        }`}
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        {c.status === "Submitted" ? "Re-submit Pre-Auth Packet" : "Email Cashless Pre-Auth"}
-                      </button>
-                      <div className="flex justify-between items-center text-[9px] pt-1">
-                        <span className="text-slate-450">TPA Status:</span>
-                        <span className={`px-1.5 py-0.5 rounded font-bold uppercase tracking-wider font-mono ${
-                          c.status === "Submitted" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
-                        }`}>{c.status}</span>
-                      </div>
-                    </div>
-                  )}
 
-                  {claimDispatchStatus && (
-                    <div className={`mt-3 p-2.5 rounded text-[10px] leading-normal border ${
-                      claimDispatchStatus.status === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-805' :
-                      claimDispatchStatus.status === 'sending' ? 'bg-amber-50 border-amber-100 text-amber-805' : 'bg-rose-50 border-rose-100 text-rose-805'
-                    }`}>
-                      {claimDispatchStatus.msg}
-                    </div>
-                  )}
-                </div>
-              ))
-            ) : null}
 
             {/* Preventive Care Scheduler */}
             <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative overflow-hidden">
@@ -3834,6 +3768,745 @@ function App() {
     )
   }
 
+  const handleInitCashlessClaim = async (contextLabel) => {
+    setClaimInitializing(true)
+    try {
+      const res = await fetch(`${BASE_URL}/api/claims/patient/${activePatient.id}/cashless/init`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clinical_context: contextLabel })
+      })
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.detail || "Failed to initialize cashless claim")
+      }
+      const newClaim = await res.json()
+      setActiveClaim(newClaim)
+      setIsCreatingClaim(false)
+      
+      // Refresh claims list
+      const claimsRes = await fetch(`${BASE_URL}/api/claims/patient/${activePatient.id}`)
+      if (claimsRes.ok) {
+        const claimsData = await claimsRes.json()
+        setClaims(claimsData)
+      }
+    } catch (err) {
+      alert("Error: " + err.message)
+    } finally {
+      setClaimInitializing(false)
+    }
+  }
+
+  const handleSaveClaimDetails = async (updatedClaim) => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/claims/${updatedClaim.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          procedure_name: updatedClaim.procedure_name,
+          estimated_cost: updatedClaim.estimated_cost,
+          status: updatedClaim.status,
+          selected_records: updatedClaim.selected_records,
+          generated_form_data: updatedClaim.generated_form_data,
+          email_preview: updatedClaim.email_preview,
+          insurer_response: updatedClaim.insurer_response
+        })
+      })
+      if (!res.ok) throw new Error("Failed to save claim details")
+      const saved = await res.json()
+      setActiveClaim(saved)
+      setClaims(prev => prev.map(c => c.id === saved.id ? saved : c))
+    } catch (err) {
+      console.error("Failed to save claim draft:", err)
+    }
+  }
+
+  const handleFormChange = (field, value) => {
+    setActiveClaim(prev => {
+      const nextForm = { ...prev.generated_form_data, [field]: value }
+      const next = { ...prev, generated_form_data: nextForm }
+      if (field === 'treatment_procedure') {
+        next.procedure_name = value
+      }
+      if (field === 'estimated_cost') {
+        const floatCost = parseFloat(value)
+        next.estimated_cost = isNaN(floatCost) ? null : floatCost
+      }
+      return next
+    })
+  }
+
+  const handleEmailChange = (field, value) => {
+    setActiveClaim(prev => {
+      const nextEmail = { ...prev.email_preview, [field]: value }
+      return { ...prev, email_preview: nextEmail }
+    })
+  }
+
+  const handleToggleRecord = (recordId) => {
+    setActiveClaim(prev => {
+      const isSelected = prev.selected_records?.includes(recordId)
+      const nextSelected = isSelected 
+        ? prev.selected_records.filter(id => id !== recordId)
+        : [...(prev.selected_records || []), recordId]
+      return { ...prev, selected_records: nextSelected }
+    })
+  }
+
+  const handleUploadSupportingDocument = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file || !activeClaim) return
+    
+    // Auto-save form fields to backend first so no changes are lost
+    await handleSaveClaimDetails(activeClaim)
+    
+    const formData = new FormData()
+    formData.append("file", file)
+    
+    try {
+      const res = await fetch(`${BASE_URL}/api/claims/${activeClaim.id}/supporting-document`, {
+        method: "POST",
+        body: formData
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || "Failed to upload supporting document")
+      }
+      const data = await res.json()
+      setActiveClaim(prev => ({
+        ...prev,
+        supporting_documents: data.supporting_documents
+      }))
+      setClaims(prev => prev.map(c => c.id === activeClaim.id ? { ...c, supporting_documents: data.supporting_documents } : c))
+    } catch (err) {
+      alert("Error uploading supporting document: " + err.message)
+    }
+  }
+
+  const handleRemoveSupportingDocument = async (filePath) => {
+    if (!activeClaim) return
+    try {
+      const res = await fetch(`${BASE_URL}/api/claims/${activeClaim.id}/supporting-document?file_path=${encodeURIComponent(filePath)}`, {
+        method: "DELETE"
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || "Failed to remove supporting document")
+      }
+      const data = await res.json()
+      setActiveClaim(prev => ({
+        ...prev,
+        supporting_documents: data.supporting_documents
+      }))
+      setClaims(prev => prev.map(c => c.id === activeClaim.id ? { ...c, supporting_documents: data.supporting_documents } : c))
+    } catch (err) {
+      alert("Error removing supporting document: " + err.message)
+    }
+  }
+
+  const handleSendCashlessClaim = async () => {
+    if (!activeClaim) return
+    setClaimSubmitting(true)
+    try {
+      // First save current state
+      await handleSaveClaimDetails(activeClaim)
+      
+      const res = await fetch(`${BASE_URL}/api/claims/${activeClaim.id}/submit`, {
+        method: "POST"
+      })
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.detail || "Failed to submit pre-auth claim")
+      }
+      const data = await res.json()
+      alert("Cashless Pre-Authorization Claim successfully sent to TPA: " + data.tpa_email)
+      
+      // Fetch updated details from database (will be "Sent")
+      const detailRes = await fetch(`${BASE_URL}/api/claims/${activeClaim.id}`)
+      if (detailRes.ok) {
+        const updated = await detailRes.json()
+        setActiveClaim(updated)
+        setClaims(prev => prev.map(c => c.id === updated.id ? updated : c))
+      }
+    } catch (err) {
+      alert("Submission Error: " + err.message)
+      // Refresh claim state to reflect failure (Failed status)
+      const detailRes = await fetch(`${BASE_URL}/api/claims/${activeClaim.id}`)
+      if (detailRes.ok) {
+        const updated = await detailRes.json()
+        setActiveClaim(updated)
+        setClaims(prev => prev.map(c => c.id === updated.id ? updated : c))
+      }
+    } finally {
+      setClaimSubmitting(false)
+    }
+  }
+
+  const handleSimulateResponse = async (status, comments) => {
+    if (!activeClaim) return
+    try {
+      const res = await fetch(`${BASE_URL}/api/claims/${activeClaim.id}/simulate-response`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, insurer_response: comments })
+      })
+      if (!res.ok) throw new Error("Simulation failed")
+      const updated = await res.json()
+      setActiveClaim(updated)
+      setClaims(prev => prev.map(c => c.id === updated.id ? updated : c))
+      alert(`Simulation completed. Claim is now: ${status}`)
+    } catch (err) {
+      alert("Error: " + err.message)
+    }
+  }
+
+  const getAIExplanation = (recordId) => {
+    const recordsExplanationList = activeClaim?.policy_check_details?.relevant_records || []
+    const match = recordsExplanationList.find(r => r.record_id === recordId)
+    return match ? match.explanation : "No analysis details provided."
+  }
+
+  const renderContextSelection = () => {
+    return (
+      <div className="space-y-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <div>
+          <h4 className="text-xs font-bold text-slate-800">Select Clinical Context</h4>
+          <p className="text-[10px] text-slate-400 mt-0.5">
+            Select the specific clinical context or treatment episode for which the cashless claim is being filed.
+          </p>
+        </div>
+
+        {claimInitializing ? (
+          <div className="flex items-center justify-center gap-2 text-xs font-bold text-teal-600 bg-teal-50/50 border border-teal-100 p-6 rounded-lg">
+            <RefreshCw className="w-4 h-4 animate-spin" />
+            AI Reasoning Engine auditing policy coverages and selecting relevant EMR records...
+          </div>
+        ) : (
+          <>
+            {clinicalContexts && clinicalContexts.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                {clinicalContexts.map((ctx) => (
+                  <button
+                    key={ctx.id}
+                    onClick={() => handleInitCashlessClaim(ctx.label)}
+                    className="border border-slate-200 bg-white hover:bg-slate-100 p-3 rounded-lg text-left transition-all hover:border-teal-500 cursor-pointer group flex flex-col justify-between h-20"
+                  >
+                    <div className="font-bold text-xs text-slate-800 group-hover:text-teal-700 line-clamp-1">{ctx.label}</div>
+                    <div className="flex justify-between items-center w-full mt-2">
+                      <span className="text-[8px] bg-slate-100 text-slate-500 px-1.5 py-0.2 rounded uppercase font-semibold">
+                        {ctx.kind.replace('_', ' ')}
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-mono">
+                        {formatToIndianDate(ctx.latest_date) || 'N/A'}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 bg-white border border-slate-150 rounded-lg text-slate-450 text-xs">
+                No clinical contexts detected for this patient. Please upload medical records first.
+              </div>
+            )}
+          </>
+        )}
+
+        <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+          <button
+            onClick={() => setIsCreatingClaim(false)}
+            className="border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const renderClaimWorkspace = () => {
+    const isSent = activeClaim.status === 'Sent'
+    const isApproved = activeClaim.status === 'Approved'
+    const isRejected = activeClaim.status === 'Rejected'
+    const isLocked = isSent || isApproved || isRejected
+    const hasActivePolicy = insuranceData && insuranceData.active_policy
+    const active_policy = insuranceData?.active_policy
+    const insurerEmail = activeClaim.email_preview?.recipient || insuranceData.active_policy?.insurer_email || 'tpa-claims-sandbox@ayuseva.com'
+
+    return (
+      <div className="space-y-4 bg-slate-50 border border-slate-200 rounded-xl p-4 animate-in fade-in duration-200">
+        
+        {/* Workspace Title & Info */}
+        <div className="flex justify-between items-start border-b border-slate-200 pb-3 flex-wrap gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-bold text-slate-800">
+                Cashless Claim Workspace: {activeClaim.clinical_context}
+              </h4>
+              <span className={`px-2 py-0.5 rounded text-[9.5px] font-bold border ${
+                activeClaim.status === 'Sent' ? 'bg-blue-50 border-blue-100 text-blue-700' :
+                activeClaim.status === 'Approved' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' :
+                activeClaim.status === 'Rejected' ? 'bg-rose-50 border-rose-100 text-rose-700' :
+                activeClaim.status === 'Failed' ? 'bg-amber-50 border-amber-100 text-amber-700' :
+                'bg-slate-50 border-slate-200 text-slate-600'
+              }`}>
+                {activeClaim.status}
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-450 mt-0.5 font-mono">
+              Draft ID: CLAIM-{activeClaim.id} | Created: {formatToIndianDate(activeClaim.created_at?.split('T')[0] || activeClaim.created_at)}
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleSaveClaimDetails(activeClaim)}
+              disabled={isLocked || claimSubmitting}
+              className="border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-50"
+            >
+              Save Draft
+            </button>
+            <button
+              onClick={() => { setActiveClaim(null); }}
+              className="border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
+            >
+              Close Workspace
+            </button>
+          </div>
+        </div>
+
+        {/* Missing Info Box */}
+        {activeClaim.missing_info && activeClaim.missing_info.length > 0 ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-850 flex items-start gap-2 leading-relaxed">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold uppercase tracking-wider text-[9px] text-amber-700 block">Missing Information</span>
+              <ul className="list-disc list-inside mt-1 space-y-0.5">
+                {activeClaim.missing_info.map((item, idx) => (
+                  <li key={idx}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-emerald-55/10 border border-emerald-250 text-emerald-850 rounded-xl p-3 text-xs flex items-start gap-2 leading-relaxed">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold uppercase tracking-wider text-[9px] text-emerald-700 block">Audit Checklist Complete</span>
+              <p className="mt-0.5 text-emerald-700">All required documents and treatment details identified in EMR context records.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Workspace Layout Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* Left Column: Form & Checklist */}
+          <div className="lg:col-span-7 space-y-4">
+            
+            {/* Pre-filled Cashless Form */}
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
+              <span className="text-[9px] text-teal-800 bg-teal-50 px-2 py-0.5 rounded uppercase font-bold tracking-wider">
+                Pre-Authorization Cashless Form
+              </span>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-0.5">Patient Name</label>
+                  <input
+                    disabled
+                    value={activePatient.name || ''}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-0.5">Patient UID</label>
+                  <input
+                    disabled
+                    value={activePatient.id || ''}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-mono font-bold text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-0.5">Diagnosis (Context Specific)</label>
+                  <input
+                    disabled={isLocked}
+                    value={activeClaim.generated_form_data?.diagnosis || ''}
+                    onChange={(e) => handleFormChange('diagnosis', e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-teal-500 font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-0.5">Advised Treatment/Procedure</label>
+                  <input
+                    disabled={isLocked}
+                    value={activeClaim.generated_form_data?.treatment_procedure || ''}
+                    onChange={(e) => handleFormChange('treatment_procedure', e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-teal-500 font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-0.5">Proposed Admission Date</label>
+                  <input
+                    type="date"
+                    disabled={isLocked}
+                    value={activeClaim.generated_form_data?.admission_date && activeClaim.generated_form_data.admission_date !== "Not available in current records" ? activeClaim.generated_form_data.admission_date : ''}
+                    onChange={(e) => handleFormChange('admission_date', e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-0.5">Estimated Cost (₹)</label>
+                  <input
+                    type="number"
+                    disabled={isLocked}
+                    value={activeClaim.generated_form_data?.estimated_cost && activeClaim.generated_form_data.estimated_cost !== "Not available in current records" ? activeClaim.generated_form_data.estimated_cost : ''}
+                    onChange={(e) => handleFormChange('estimated_cost', e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-teal-500 font-bold"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-0.5">Clinical Findings Summary</label>
+                <textarea
+                  disabled={isLocked}
+                  rows={2}
+                  value={activeClaim.generated_form_data?.clinical_findings || ''}
+                  onChange={(e) => handleFormChange('clinical_findings', e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-teal-500 leading-normal"
+                />
+              </div>
+            </div>
+
+            {/* EMR Document Checklist */}
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
+              <span className="text-[9px] text-teal-800 bg-teal-50 px-2 py-0.5 rounded uppercase font-bold tracking-wider">
+                Document Attachments Checklist
+              </span>
+              <p className="text-[10px] text-slate-400 leading-normal">
+                AI has pre-selected records matching this clinical context. Check/uncheck documents to modify the claim packet.
+              </p>
+
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                {timeline && timeline.length > 0 ? (
+                  timeline.map((r) => {
+                    const isAttached = activeClaim.selected_records?.includes(r.id)
+                    const aiExplanation = getAIExplanation(r.id)
+                    const isHighRelevance = (activeClaim?.policy_check_details?.relevant_records || [])
+                      .find(item => item.record_id === r.id)?.relevance === 'High'
+
+                    return (
+                      <div key={r.id} className="border border-slate-100 hover:bg-slate-50/50 rounded-lg p-2.5 flex items-start gap-2.5 text-xs">
+                        <input
+                          type="checkbox"
+                          disabled={isLocked}
+                          checked={isAttached}
+                          onChange={() => handleToggleRecord(r.id)}
+                          className="mt-1 accent-teal-600 cursor-pointer h-4 w-4"
+                        />
+                        <div className="space-y-0.5 min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-slate-800">{r.record_type}</span>
+                            <span className="text-[8px] font-mono text-slate-400">({formatToIndianDate(r.date) || 'N/A'})</span>
+                            {isHighRelevance ? (
+                              <span className="text-[8px] bg-teal-50 text-teal-600 font-bold px-1.5 py-0.2 rounded uppercase">
+                                High Relevance
+                              </span>
+                            ) : (
+                              <span className="text-[8px] bg-slate-100 text-slate-450 font-medium px-1.5 py-0.2 rounded uppercase">
+                                Low Relevance
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[9.5px] text-slate-500 leading-normal">
+                            <strong className="text-teal-700">AI Analysis:</strong> {aiExplanation}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <p className="text-xs text-slate-400 italic text-center py-4">No medical records uploaded for this patient.</p>
+                )}
+              </div>
+
+              {/* Manually added supporting documents */}
+              {activeClaim.supporting_documents && activeClaim.supporting_documents.length > 0 && (
+                <div className="space-y-2 pt-3 border-t border-slate-100">
+                  <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider block">
+                    Manually Attached Supporting Documents
+                  </span>
+                  <div className="space-y-1.5">
+                    {activeClaim.supporting_documents.map((doc, idx) => (
+                      <div key={idx} className="border border-teal-100 bg-teal-50/20 rounded-lg p-2.5 flex items-center justify-between gap-2.5 text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-teal-700 text-[8px] bg-teal-50 px-1.5 py-0.5 rounded font-bold uppercase shrink-0">
+                            Manually Added
+                          </span>
+                          <span className="font-medium text-slate-800 truncate">{doc.file_name}</span>
+                        </div>
+                        {!isLocked && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSupportingDocument(doc.file_path)}
+                            className="text-[10px] text-red-500 hover:text-red-700 hover:underline shrink-0"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Add Supporting Document trigger button */}
+              {!isLocked && (
+                <div className="pt-1.5">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-350 rounded-lg cursor-pointer text-xs text-slate-600 hover:text-slate-800 transition-colors font-medium">
+                    <svg className="w-3.5 h-3.5 text-slate-450" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>+ Add Supporting Document</span>
+                    <input
+                      type="file"
+                      onChange={handleUploadSupportingDocument}
+                      className="hidden"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+
+          </div>
+
+          {/* Right Column: Policy Check & Email Preview */}
+          <div className="lg:col-span-5 space-y-4">
+            
+            {/* AI Policy Check */}
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
+              <span className="text-[9px] text-teal-800 bg-teal-50 px-2 py-0.5 rounded uppercase font-bold tracking-wider">
+                AI Insurance Policy Check
+              </span>
+              
+              <div className="bg-slate-900 text-slate-100 p-3 rounded-lg text-xs space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Carrier:</span>
+                  <span className="font-bold text-teal-400">{active_policy?.insurer}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Pre-Auth Eligibility:</span>
+                  <span className={`font-bold uppercase ${
+                    activeClaim.policy_check_status === 'Appears Eligible' ? 'text-emerald-400' : 'text-amber-400'
+                  }`}>{activeClaim.policy_check_status}</span>
+                </div>
+                <p className="text-[10px] text-slate-300 leading-normal border-t border-slate-700/60 pt-2 mt-1 italic">
+                  {activeClaim.policy_check_details?.coverage_summary || "Policy coverage details evaluated by AI."}
+                </p>
+              </div>
+
+              {activeClaim.policy_check_details?.exclusions_found && activeClaim.policy_check_details.exclusions_found.length > 0 && (
+                <div className="bg-rose-50 border border-rose-100 rounded-lg p-2.5 text-xs text-rose-800">
+                  <span className="font-bold text-[8.5px] uppercase tracking-wider block text-rose-700">Excluded Under Policy Rules</span>
+                  <ul className="list-disc list-inside mt-0.5 space-y-0.5 text-[9.5px]">
+                    {activeClaim.policy_check_details.exclusions_found.map((e, idx) => <li key={idx}>{e}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Email Preview Panel */}
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
+              <span className="text-[9px] text-teal-800 bg-teal-50 px-2 py-0.5 rounded uppercase font-bold tracking-wider">
+                Covering Email Preview
+              </span>
+              
+              <div className="space-y-2 text-xs">
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-0.5">Insurer TPA Email</label>
+                  <input
+                    disabled
+                    value={insurerEmail}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-mono text-slate-650"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-0.5">Subject</label>
+                  <input
+                    disabled={isLocked}
+                    value={activeClaim.email_preview?.subject || ''}
+                    onChange={(e) => handleEmailChange('subject', e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-teal-500 font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-0.5">Covering Body</label>
+                  <textarea
+                    disabled={isLocked}
+                    rows={4}
+                    value={activeClaim.email_preview?.body || ''}
+                    onChange={(e) => handleEmailChange('body', e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-teal-500 leading-normal"
+                  />
+                </div>
+              </div>
+
+              {!isLocked && (
+                <button
+                  onClick={handleSendCashlessClaim}
+                  disabled={claimSubmitting}
+                  className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  {claimSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Send Cashless Claim Package
+                </button>
+              )}
+            </div>
+
+            {/* Simulated Insurer responses (for prototype) */}
+            {isSent && (
+              <div className="bg-slate-100 border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
+                <span className="text-[9px] text-slate-550 uppercase font-bold tracking-wider block">
+                  Simulate Insurer / TPA Response
+                </span>
+                <p className="text-[10px] text-slate-400 leading-normal">
+                  In sandbox environment, simulate response feedback events back to the hospital.
+                </p>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleSimulateResponse("Approved", "Pre-authorization approved for ₹" + (activeClaim.estimated_cost || 0).toLocaleString() + ". Authorization ID: AUTH-" + Math.floor(Math.random()*90000+10000))}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded text-[10.5px] cursor-pointer text-center"
+                  >
+                    Simulate Approve
+                  </button>
+                  <button
+                    onClick={() => handleSimulateResponse("Rejected", "Pre-authorization rejected. Condition is subject to a 24-month waiting period for pre-existing diseases.")}
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-1.5 rounded text-[10.5px] cursor-pointer text-center"
+                  >
+                    Simulate Reject
+                  </button>
+                  <button
+                    onClick={() => handleSimulateResponse("Additional Information Required", "TPA Request: Please provide preoperative MRI imaging scans and diagnostic blood reports.")}
+                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-1.5 rounded text-[10.5px] cursor-pointer text-center"
+                  >
+                    Simulate Add Info
+                  </button>
+                  <button
+                    onClick={() => handleSimulateResponse("Partially Approved", "Approved for ₹" + ((activeClaim.estimated_cost || 0)*0.7).toLocaleString() + ". Remaining 30% subject to patient co-pay clause.")}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded text-[10.5px] cursor-pointer text-center"
+                  >
+                    Simulate Co-pay
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Insurer comments display */}
+            {activeClaim.insurer_response && (
+              <div className="bg-slate-900 text-slate-100 p-3 rounded-xl text-xs space-y-1">
+                <span className="font-bold text-[8.5px] uppercase tracking-wider text-teal-400 block">Insurer Feedback Comments</span>
+                <p className="font-mono text-[10px] leading-relaxed text-slate-300">
+                  {activeClaim.insurer_response}
+                </p>
+              </div>
+            )}
+
+          </div>
+
+        </div>
+
+      </div>
+    )
+  }
+
+  const renderClaimsHistory = () => {
+    return (
+      <div className="space-y-3">
+        <div className="flex justify-between items-center">
+          <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider text-slate-500">
+            Claims History
+          </h4>
+        </div>
+
+        {claims && claims.length > 0 ? (
+          <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200 text-[10.5px] uppercase">
+                <tr>
+                  <th className="px-4 py-2.5">Date</th>
+                  <th className="px-4 py-2.5">Clinical Context</th>
+                  <th className="px-4 py-2.5">Procedure</th>
+                  <th className="px-4 py-2.5">Estimated Cost</th>
+                  <th className="px-4 py-2.5">Status</th>
+                  <th className="px-4 py-2.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {claims.map((c) => (
+                  <tr key={c.id} className="hover:bg-slate-50/50">
+                    <td className="px-4 py-3 font-mono text-[10.5px] text-slate-450">
+                      {formatToIndianDate(c.created_at?.split('T')[0] || c.created_at) || 'N/A'}
+                    </td>
+                    <td className="px-4 py-3 font-bold text-slate-850">{c.clinical_context || 'N/A'}</td>
+                    <td className="px-4 py-3 text-slate-650">{c.procedure_name || 'N/A'}</td>
+                    <td className="px-4 py-3 font-bold text-slate-700">
+                      {c.estimated_cost ? `₹${c.estimated_cost.toLocaleString()}` : 'N/A'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded text-[9.5px] font-bold border ${
+                        c.status === 'Sent' ? 'bg-blue-50 border-blue-100 text-blue-700' :
+                        c.status === 'Approved' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' :
+                        c.status === 'Rejected' ? 'bg-rose-50 border-rose-100 text-rose-700' :
+                        c.status === 'Failed' ? 'bg-amber-50 border-amber-100 text-amber-705' :
+                        'bg-slate-50 border-slate-200 text-slate-600'
+                      }`}>
+                        {c.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right space-x-2">
+                      <button
+                        onClick={() => setActiveClaim(c)}
+                        className="bg-white hover:bg-slate-50 border border-slate-200 hover:border-teal-500 text-slate-700 hover:text-teal-600 font-bold px-2 py-1 rounded text-[10px] cursor-pointer shadow-sm transition-all"
+                      >
+                        Manage
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (confirm("Delete this claim permanently from history?")) {
+                            try {
+                              const res = await fetch(`${BASE_URL}/api/claims/${c.id}`, { method: "DELETE" })
+                              if (res.ok) {
+                                setClaims(prev => prev.filter(item => item.id !== c.id))
+                              }
+                            } catch (e) {
+                              console.error(e)
+                            }
+                          }
+                        }}
+                        className="border border-rose-100 hover:bg-rose-50 text-rose-600 p-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer inline-flex items-center justify-center"
+                        title="Delete claim"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-8 bg-slate-50 border border-slate-200 rounded-xl text-slate-450">
+            <Landmark className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <p className="text-xs font-semibold">No cashless claims history recorded.</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">Click Create Cashless Claim to initialize a pre-authorization query.</p>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const renderAdminInsurance = () => {
     if (!activePatient) {
       return (
@@ -4319,6 +4992,42 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* Insurance Claims Section */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-4 mt-6">
+          <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <Landmark className="w-3.5 h-3.5 text-teal-600" /> Insurance Claims Portal
+            </h3>
+            {active_policy && !isCreatingClaim && !activeClaim && (
+              <button
+                onClick={() => setIsCreatingClaim(true)}
+                className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all shadow-sm cursor-pointer"
+              >
+                + Create Cashless Claim
+              </button>
+            )}
+          </div>
+
+          {!active_policy ? (
+            <div className="text-center py-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-450 text-xs">
+              <Shield className="w-8 h-8 text-slate-350 mx-auto mb-2" />
+              <p className="font-bold">No Active Policy Found</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Please upload and activate an insurance policy to initiate a cashless pre-auth claim query.</p>
+            </div>
+          ) : (
+            <>
+              {/* CREATING CLAIM FLOW: SELECT CLINICAL CONTEXT */}
+              {isCreatingClaim && renderContextSelection()}
+
+              {/* VIEW / EDIT ACTIVE CLAIM WORKSPACE */}
+              {activeClaim && renderClaimWorkspace()}
+
+              {/* HISTORICAL / CURRENT CLAIMS LIST (if not actively editing or creating) */}
+              {!isCreatingClaim && !activeClaim && renderClaimsHistory()}
+            </>
+          )}
+        </div>
       </div>
     )
   }

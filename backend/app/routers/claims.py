@@ -1,147 +1,395 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import Patient, Record, Claim
+from app.models import Patient, Record, Claim, InsurancePolicy
 from app.services.email import send_html_email
+from app.services.claims_ai import analyze_cashless_claim_context
+from pydantic import BaseModel
+from typing import List, Dict, Any, Optional
+from datetime import datetime
 
 router = APIRouter(prefix="/api/claims", tags=["claims"])
 
+# Request/Response schemas
+class CashlessInitRequest(BaseModel):
+    clinical_context: str
 
+class CashlessUpdateRequest(BaseModel):
+    procedure_name: Optional[str] = None
+    estimated_cost: Optional[float] = None
+    status: Optional[str] = None
+    selected_records: Optional[List[int]] = None
+    generated_form_data: Optional[Dict[str, Any]] = None
+    email_preview: Optional[Dict[str, Any]] = None
+    insurer_response: Optional[str] = None
+
+class ClaimSubmitRequest(BaseModel):
+    tpa_email: Optional[str] = None
+    patient_email: Optional[str] = None
+
+class ClaimSimulationRequest(BaseModel):
+    status: str
+    insurer_response: str
+
+def parse_cost(val):
+    if not val or val == "Not available in current records":
+        return None
+    try:
+        if isinstance(val, (int, float)):
+            return float(val)
+        cleaned = "".join(ch for ch in str(val) if ch.isdigit() or ch == ".")
+        return float(cleaned) if cleaned else None
+    except Exception:
+        return None
 
 @router.get("/patient/{patient_id}")
 def get_patient_claims(patient_id: str, db: Session = Depends(get_db)):
-    """Fetches all surgery claims for a specific patient UID"""
-    claims = db.query(Claim).filter(Claim.patient_id == patient_id).all()
+    """Fetches all claims (cashless & legacy) for a specific patient UID"""
+    claims = db.query(Claim).filter(Claim.patient_id == patient_id).order_by(Claim.created_at.desc()).all()
     return claims
 
 @router.get("/{claim_id}")
-def get_claim_audit(claim_id: int, db: Session = Depends(get_db)):
-    """
-    Fetches claim details and dynamically performs a gap audit checking 
-    for required pre-authorization paperwork in the patient's EMR record.
-    """
+def get_claim_details(claim_id: int, db: Session = Depends(get_db)):
+    """Fetches full details of a specific claim"""
     claim = db.query(Claim).filter(Claim.id == claim_id).first()
     if not claim:
         raise HTTPException(status_code=404, detail="Claim not found.")
-        
-    patient = db.query(Patient).filter(Patient.id == claim.patient_id).first()
-    records = db.query(Record).filter(Record.patient_id == claim.patient_id, Record.record_type != "INSURANCE_POLICY").all()
+    return claim
+
+@router.post("/patient/{patient_id}/cashless/init")
+def initialize_cashless_claim(
+    patient_id: str,
+    req: CashlessInitRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Scaffolds a cashless pre-auth claim draft. Uses AI to check policy,
+    identify relevant documents, extract form data and draft covering email.
+    """
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found.")
+
+    active_policy = db.query(InsurancePolicy).filter(
+        InsurancePolicy.patient_id == patient_id,
+        InsurancePolicy.status == "Active"
+    ).first()
     
-    # Analyze EMR uploads to audit gaps
-    uploaded_types = [r.record_type for r in records]
+    if not active_policy:
+        raise HTTPException(
+            status_code=400, 
+            detail="Patient has no active insurance policy. Please upload a policy first."
+        )
+
+    # Check if cashless claim already exists for clinical context
+    from app.models import ClinicalContext
+    db_ctx = db.query(ClinicalContext).filter(
+        ClinicalContext.patient_id == patient_id,
+        ClinicalContext.name == req.clinical_context
+    ).first()
     
-    required_docs = {
-        "Identity Proof": any("ID" in r.record_type or "Identity" in r.record_type or r.record_type == "Other" for r in records),
-        "Doctor Prescription Note": "Prescription" in uploaded_types,
-        "Surgery Estimate Sheet": any(r.parsed_json and r.parsed_json.get("surgery_advised") for r in records),
-        "Diagnostic Scan Report": any("Lab" in r.record_type or "Scan" in r.record_type for r in records)
+    existing_claim = db.query(Claim).filter(
+        Claim.patient_id == patient_id,
+        Claim.policy_id == active_policy.id,
+        (Claim.clinical_context_id == db_ctx.id) if db_ctx else (Claim.clinical_context == req.clinical_context),
+        (Claim.status == "Draft") | (Claim.status == "Failed") | (Claim.status == "Ready for Review") | (Claim.status == "Missing Information")
+    ).first()
+    if existing_claim:
+        return existing_claim
+
+    # Fetch patient EMR records (excluding policy document itself)
+    records = db.query(Record).filter(
+        Record.patient_id == patient_id, 
+        Record.record_type != "INSURANCE_POLICY"
+    ).all()
+
+    # Filter EMR records to only those in the context
+    if db_ctx:
+        records = [r for r in records if r.clinical_context_id == db_ctx.id]
+
+    # Prepare data for AI reasoning
+    patient_data = {
+        "id": patient.id,
+        "name": patient.name,
+        "dob": patient.dob,
+        "phone": patient.phone
     }
-    
-    missing = [doc for doc, present in required_docs.items() if not present]
-    
-    # Update claim's missing list in the database
-    claim.missing_documents = missing
+    policy_data = {
+        "id": active_policy.id,
+        "insurer": active_policy.insurer,
+        "policy_number": active_policy.policy_number,
+        "policyholder_name": active_policy.policyholder_name,
+        "patient_name": active_policy.patient_name,
+        "member_id": active_policy.member_id,
+        "policy_type": active_policy.policy_type,
+        "sum_insured": active_policy.sum_insured,
+        "insurer_email": active_policy.insurer_email,
+        "benefits_coverage": active_policy.benefits_coverage,
+        "conditions_limitations": active_policy.conditions_limitations
+    }
+    records_list = [
+        {
+            "id": r.id,
+            "record_type": r.record_type,
+            "date": r.date,
+            "parsed_json": r.parsed_json
+        } for r in records
+    ]
+
+    try:
+        ai_result = analyze_cashless_claim_context(
+            patient_data, 
+            policy_data, 
+            records_list, 
+            req.clinical_context
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"AI claims analysis failed: {str(e)}"
+        )
+
+    # Determine default checked records (relevance == High)
+    selected_records = [
+        r["record_id"] for r in ai_result.get("relevant_records", []) 
+        if r.get("relevance") == "High"
+    ]
+
+    form_data = ai_result.get("cashless_form", {})
+    procedure = form_data.get("treatment_procedure") or "Cashless Procedure"
+    cost = parse_cost(form_data.get("estimated_cost"))
+
+    policy_check = ai_result.get("policy_check", {})
+    missing_info = ai_result.get("missing_info", [])
+
+    # Scaffold status based on missing information
+    default_status = "Ready for Review"
+    if missing_info:
+        default_status = "Missing Information"
+
+    new_claim = Claim(
+        patient_id=patient_id,
+        policy_id=active_policy.id,
+        clinical_context_id=db_ctx.id if db_ctx else None,
+        procedure_name=procedure,
+        estimated_cost=cost,
+        clinical_context=req.clinical_context,
+        status=default_status,
+        selected_records=selected_records,
+        policy_check_status=policy_check.get("status", "Needs Review"),
+        policy_check_details=policy_check,
+        missing_info=missing_info,
+        generated_form_data=form_data,
+        email_preview=ai_result.get("email_preview", {}),
+        missing_documents=policy_check.get("required_documents", []),
+        insurer_response=None
+    )
+
+    db.add(new_claim)
     db.commit()
-    
-    return {
-        "claim_id": claim.id,
-        "patient_id": claim.patient_id,
-        "patient_name": patient.name or "Unnamed Patient",
-        "procedure_name": claim.procedure_name,
-        "estimated_cost": claim.estimated_cost,
-        "status": claim.status,
-        "audit_checklist": required_docs,
-        "missing_documents": missing,
-        "files_uploaded": [
-            {"id": r.id, "type": r.record_type, "date": r.date, "file": r.file_path} for r in records
-        ]
-    }
+    db.refresh(new_claim)
+
+    return new_claim
+
+@router.put("/{claim_id}")
+def update_claim_details(
+    claim_id: int,
+    req: CashlessUpdateRequest,
+    db: Session = Depends(get_db)
+):
+    """Updates cashless claim form details, selected records, cost, or email preview"""
+    claim = db.query(Claim).filter(Claim.id == claim_id).first()
+    if not claim:
+        raise HTTPException(status_code=404, detail="Claim not found.")
+
+    if req.procedure_name is not None:
+        claim.procedure_name = req.procedure_name
+    if req.estimated_cost is not None:
+        claim.estimated_cost = req.estimated_cost
+    if req.status is not None:
+        claim.status = req.status
+    if req.selected_records is not None:
+        claim.selected_records = req.selected_records
+    if req.generated_form_data is not None:
+        claim.generated_form_data = req.generated_form_data
+    if req.email_preview is not None:
+        claim.email_preview = req.email_preview
+    if req.insurer_response is not None:
+        claim.insurer_response = req.insurer_response
+
+    claim.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(claim)
+    return claim
 
 @router.post("/{claim_id}/submit")
 def submit_preauth_claim(
     claim_id: int,
-    tpa_email: str = Body("tpa-claims-sandbox@ayuseva.com"),
-    patient_email: str = Body("patient-alerts@ayuseva.com"),
+    req: ClaimSubmitRequest = None,
     db: Session = Depends(get_db)
 ):
     """
-    Assembles the clinical records checklist, estimate costs, and patient policy details,
-    compiles them into a structured pre-authorization claim packet, and emails the TPA.
+    Sends the cashless claim pre-auth package via mock email infrastructure.
+    Transitions status to 'Sent' ONLY if email transmission succeeds.
     """
     claim = db.query(Claim).filter(Claim.id == claim_id).first()
     if not claim:
         raise HTTPException(status_code=404, detail="Claim not found.")
-        
+
     patient = db.query(Patient).filter(Patient.id == claim.patient_id).first()
-    records = db.query(Record).filter(Record.patient_id == claim.patient_id).all()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient details not found.")
+
+    # Determine recipient insurer email
+    insurer_email = None
+    if claim.email_preview and claim.email_preview.get("recipient"):
+        insurer_email = claim.email_preview["recipient"]
     
-    # Construct structured EMR timeline summary for the claim email
-    timeline_rows = ""
-    for idx, r in enumerate(records, 1):
-        timeline_rows += f"""
-        <tr>
-            <td style="padding: 8px; border: 1px solid #ddd;">{idx}</td>
-            <td style="padding: 8px; border: 1px solid #ddd;">{r.record_type}</td>
-            <td style="padding: 8px; border: 1px solid #ddd;">{r.date or 'N/A'}</td>
-            <td style="padding: 8px; border: 1px solid #ddd;">AI-Parsed successfully</td>
-        </tr>
-        """
-        
-    # Compile HTML body for the pre-authorization claim
+    if not insurer_email or insurer_email == "Not available in current records":
+        active_policy = db.query(InsurancePolicy).filter(InsurancePolicy.id == claim.policy_id).first()
+        if active_policy and active_policy.insurer_email:
+            insurer_email = active_policy.insurer_email
+
+    tpa_email = req.tpa_email if req and req.tpa_email else insurer_email
+    if not tpa_email or tpa_email == "Not available in current records":
+        tpa_email = "tpa-claims-sandbox@ayuseva.com"
+
+    patient_email = req.patient_email if req and req.patient_email else "patient-alerts@ayuseva.com"
+
+    # Assemble HTML body using email preview and attachments list
+    email_body = claim.email_preview.get("body") if (claim.email_preview and claim.email_preview.get("body")) else ""
+    if not email_body:
+        email_body = f"Please find attached the cashless pre-authorization claim request for {patient.name} ({patient.id})."
+
+    # Retrieve attachments details
+    attached_records = db.query(Record).filter(Record.id.in_(claim.selected_records or [])).all()
+    attachments_list_html = ""
+    for r in attached_records:
+        attachments_list_html += f"<li>{r.record_type} (Date: {r.date or 'N/A'}, Path: {r.file_path or 'Direct Ingest'})</li>"
+
+    # Include manually added supporting documents in email attachments checklist
+    supporting_docs = claim.supporting_documents or []
+    for doc in supporting_docs:
+        attachments_list_html += f"<li>{doc.get('file_name')} (Supporting Document - Manually Added, Path: {doc.get('file_path')})</li>"
+
     html_content = f"""
     <html>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <div style="max-width: 600px; margin: 0 auto; border: 1px solid #1e3a8a; border-radius: 8px; padding: 20px;">
-            <div style="background-color: #1e3a8a; color: white; padding: 15px; border-radius: 6px 6px 0 0; text-align: center;">
-                <h2>AyuSeva Insurance Claims Agent</h2>
-                <p>Digital Pre-Authorization Request Packet</p>
-            </div>
-            
-            <h3 style="color: #1e3a8a; border-bottom: 2px solid #eff6ff; padding-bottom: 5px;">1. Patient & Policy Details</h3>
-            <p><strong>Patient Name:</strong> {patient.name or 'Registered Patient'}</p>
-            <p><strong>Patient Local UID:</strong> {patient.id}</p>
-            <p><strong>Registered Phone:</strong> {patient.phone or 'N/A'}</p>
-            <p><strong>Insurance Provider:</strong> {patient.policy_details.get('insurer', 'N/A') if patient.policy_details else 'Star Health Insurance (Default)'}</p>
-            <p><strong>Policy Number:</strong> {patient.policy_details.get('policy_number', 'N/A') if patient.policy_details else 'POL-92810398'}</p>
-
-            <h3 style="color: #1e3a8a; border-bottom: 2px solid #eff6ff; padding-bottom: 5px;">2. Clinical Procedure Information</h3>
-            <p><strong>Advised Surgery/Procedure:</strong> {claim.procedure_name}</p>
-            <p><strong>Estimated Treatment Cost:</strong> ₹{claim.estimated_cost or 'N/A'}</p>
-            <p><strong>Status:</strong> Pre-Authorization Audit Passed (100% Documentation present)</p>
-
-            <h3 style="color: #1e3a8a; border-bottom: 2px solid #eff6ff; padding-bottom: 5px;">3. Attached EMR Records Index</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background-color: #eff6ff; color: #1e3a8a;">
-                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">#</th>
-                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Record Type</th>
-                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Record Date</th>
-                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Verification</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {timeline_rows or '<tr><td colspan="4" style="padding:8px;text-align:center;">No documents attached.</td></tr>'}
-                </tbody>
-            </table>
-            
-            <div style="margin-top: 25px; padding: 10px; background-color: #f0fdfa; border-left: 4px solid #0d9488; font-size: 0.9em; border-radius: 4px;">
-                <strong>Notice:</strong> This is a secure digital transmission validated by AyuSeva AI core. Patient clinical context is mapped using verified local hospital network UIDs. Please process this cashless pre-authorization request within 30 minutes.
-            </div>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333333; max-width: 600px; margin: 0 auto; border: 1px solid #14b8a6; padding: 20px; border-radius: 8px;">
+        <div style="background-color: #0f766e; color: white; padding: 15px; text-align: center; border-radius: 6px 6px 0 0;">
+          <h2>AyuSeva Cashless Pre-Auth Claim</h2>
+          <p>Verified Claim Package Dispatched</p>
         </div>
-    </body>
+        <div style="padding: 15px;">
+          <p>{email_body.replace('\n', '<br/>')}</p>
+          
+          <h3 style="color: #0f766e; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">Attached Documents Checklist</h3>
+          <ul style="padding-left: 20px;">
+            {attachments_list_html or "<li>No records attached.</li>"}
+          </ul>
+          
+          <div style="background-color: #f0fdfa; border-left: 4px solid #0f766e; padding: 10px; margin-top: 20px; font-size: 11px;">
+            <strong>AyuSeva Verification Alert:</strong> This is a secure digital cashless authorization query. Case materials have been verified and audited under patient UID: {patient.id}.
+          </div>
+        </div>
+      </body>
     </html>
     """
+
+    subject = claim.email_preview.get("subject") if (claim.email_preview and claim.email_preview.get("subject")) else f"Pre-Auth Claim Request [AyuSeva] - {claim.procedure_name} - {patient.id}"
+
+    import os
+    import base64
+    attachments = []
     
-    subject = f"Pre-Auth Claim Request [AyuSeva] - {claim.procedure_name} - {patient.id}"
-    
-    success = send_html_email(tpa_email, subject, html_content, cc_email=patient_email)
-    
+    # 1. Add AI-selected records
+    for r in attached_records:
+        if r.file_path and os.path.exists(r.file_path):
+            try:
+                with open(r.file_path, "rb") as f:
+                    content_b64 = base64.b64encode(f.read()).decode("utf-8")
+                attachments.append({
+                    "filename": os.path.basename(r.file_path),
+                    "content": content_b64
+                })
+            except Exception as attachment_err:
+                print(f"Failed to read/encode record attachment {r.file_path}: {attachment_err}")
+
+    # 2. Add manually uploaded supporting documents
+    for doc in supporting_docs:
+        path = doc.get("file_path")
+        if path and os.path.exists(path):
+            try:
+                with open(path, "rb") as f:
+                    content_b64 = base64.b64encode(f.read()).decode("utf-8")
+                attachments.append({
+                    "filename": doc.get("file_name") or os.path.basename(path),
+                    "content": content_b64
+                })
+            except Exception as attachment_err:
+                print(f"Failed to read/encode supporting document {path}: {attachment_err}")
+
+    success = send_html_email(
+        to_email=tpa_email,
+        subject=subject,
+        html_content=html_content,
+        cc_email=patient_email,
+        attachments=attachments
+    )
+
     if success:
-        claim.status = "Submitted"
+        claim.status = "Sent"
+        claim.updated_at = datetime.utcnow()
         db.commit()
-        return {"status": "Claim submitted successfully.", "tpa_notified": tpa_email, "patient_cc": patient_email}
+        return {
+            "status": "success",
+            "message": "Cashless claim submitted successfully",
+            "tpa_email": tpa_email,
+            "patient_cc": patient_email
+        }
     else:
-        raise HTTPException(status_code=500, detail="Failed to dispatch claim email via Resend API.")
+        # Strict status requirement: If sending fails, do not mark as Sent, mark as Failed
+        claim.status = "Failed"
+        claim.updated_at = datetime.utcnow()
+        db.commit()
+        from app.services.email import last_email_error
+        err_detail = "TPA Email transmission failed. Please check Resend service state and try again."
+        if last_email_error:
+            err_detail = f"Resend API Error: [{last_email_error['type']}] {last_email_error['message']}"
+            if last_email_error.get("status_code"):
+                err_detail += f" (Status Code: {last_email_error['status_code']})"
+        raise HTTPException(
+            status_code=500, 
+            detail=err_detail
+        )
+
+@router.post("/{claim_id}/simulate-response")
+def simulate_insurer_response(
+    claim_id: int,
+    req: ClaimSimulationRequest,
+    db: Session = Depends(get_db)
+):
+    """Simulates an insurer response (Approved, Partially Approved, Rejected, etc.) for testing"""
+    claim = db.query(Claim).filter(Claim.id == claim_id).first()
+    if not claim:
+        raise HTTPException(status_code=404, detail="Claim not found.")
+
+    claim.status = req.status
+    claim.insurer_response = req.insurer_response
+    claim.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(claim)
+    return claim
+
+@router.delete("/{claim_id}")
+def delete_claim(claim_id: int, db: Session = Depends(get_db)):
+    """Deletes a claim from SQLite"""
+    claim = db.query(Claim).filter(Claim.id == claim_id).first()
+    if not claim:
+        raise HTTPException(status_code=404, detail="Claim not found.")
+    
+    db.delete(claim)
+    db.commit()
+    return {"message": "Claim successfully deleted"}
 
 @router.post("/patient/{uid}/trigger-preventive")
 def trigger_preventive_checkup(
@@ -150,52 +398,88 @@ def trigger_preventive_checkup(
     patient_email: str = Body("patient-alerts@ayuseva.com"),
     db: Session = Depends(get_db)
 ):
-    """
-    Simulates checking policy terms and schedules a free, policy-covered
-    annual home health checkup (booking laboratory collections via email) on behalf of the patient.
-    """
+    """Simulates scheduling checkups (legacy method, kept for compatibility)"""
     patient = db.query(Patient).filter(Patient.id == uid).first()
     if not patient:
         raise HTTPException(status_code=404, detail=f"Patient {uid} not found.")
 
-    # Generate preventive care request email
     html_content = f"""
     <html>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <div style="max-width: 600px; margin: 0 auto; border: 1px solid #0d9488; border-radius: 8px; padding: 20px;">
-            <div style="background-color: #0d9488; color: white; padding: 15px; border-radius: 6px 6px 0 0; text-align: center;">
-                <h2>AyuSeva Care Coordination Agent</h2>
-                <p>Automated Preventive Checkup Booking Request</p>
-            </div>
-            
-            <p>Dear Partner Lab,</p>
-            <p>Under the policy terms for patient <strong>{patient.name or 'Registered Patient'}</strong>, they are eligible for a zero-cost annual preventive checkup package. AyuSeva has scheduled a home laboratory collection for this patient.</p>
-            
-            <h3 style="color: #0d9488; border-bottom: 2px solid #f0fdfa; padding-bottom: 5px;">1. Patient Details</h3>
-            <p><strong>Patient Name:</strong> {patient.name or 'Registered Patient'}</p>
-            <p><strong>Patient Local UID:</strong> {patient.id}</p>
-            <p><strong>Patient Contact:</strong> {patient.phone or 'N/A'}</p>
-            
-            <h3 style="color: #0d9488; border-bottom: 2px solid #f0fdfa; padding-bottom: 5px;">2. Scheduled Investigation Details</h3>
-            <p><strong>Authorized Package:</strong> Basic Preventive Profile (HbA1c, Fasting Blood Glucose, Lipid Profile)</p>
-            <p><strong>Preferred Collection Type:</strong> Home Sample Blood Draw</p>
-            <p><strong>Billing Type:</strong> Covered by Insurance Policy (Billing code: FREE-CHECKUP-2026)</p>
-            
-            <p>Please contact the patient at their registered contact details to coordinate the home slot collection.</p>
-            
-            <div style="margin-top: 25px; padding: 10px; background-color: #eff6ff; border-left: 4px solid #1e3a8a; font-size: 0.9em; border-radius: 4px;">
-                <strong>Patient CC Notification:</strong> AyuSeva has scheduled your free health checkup. The laboratory coordinator will contact you shortly. Zero out-of-pocket payment is required at collection.
-            </div>
-        </div>
-    </body>
+      <body>
+        <h3>Preventive checkup request</h3>
+        <p>Patient {patient.name} ({patient.id}) eligible for health checkups.</p>
+      </body>
     </html>
     """
-    
     subject = f"Preventive Home Collection Booking [AyuSeva] - {patient.id}"
-    
     success = send_html_email(lab_email, subject, html_content, cc_email=patient_email)
-    
     if success:
         return {"status": "Preventive checkup booked.", "lab_notified": lab_email, "patient_cc": patient_email}
     else:
         raise HTTPException(status_code=500, detail="Failed to dispatch laboratory collection email.")
+
+
+from fastapi import UploadFile, File, Query
+
+@router.post("/{claim_id}/supporting-document")
+def upload_supporting_document(
+    claim_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    import os
+    claim = db.query(Claim).filter(Claim.id == claim_id).first()
+    if not claim:
+        raise HTTPException(status_code=404, detail="Claim not found.")
+        
+    os.makedirs("uploads/supporting_claims", exist_ok=True)
+    
+    # Filter/clean filename characters to prevent path injections
+    safe_name = "".join(c for c in file.filename if c.isalnum() or c in "._- ")
+    filename = f"supporting_{claim_id}_{int(datetime.utcnow().timestamp())}_{safe_name}"
+    file_path = os.path.join("uploads", "supporting_claims", filename).replace("\\", "/")
+    
+    try:
+        content = file.file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save supporting document: {str(e)}")
+        
+    current_docs = list(claim.supporting_documents or [])
+    current_docs.append({
+        "file_name": file.filename,
+        "file_path": file_path
+    })
+    claim.supporting_documents = current_docs
+    db.commit()
+    db.refresh(claim)
+    
+    return {"supporting_documents": claim.supporting_documents}
+
+
+@router.delete("/{claim_id}/supporting-document")
+def delete_supporting_document(
+    claim_id: int,
+    file_path: str = Query(..., description="The path of the supporting document to remove"),
+    db: Session = Depends(get_db)
+):
+    import os
+    claim = db.query(Claim).filter(Claim.id == claim_id).first()
+    if not claim:
+        raise HTTPException(status_code=404, detail="Claim not found.")
+        
+    current_docs = list(claim.supporting_documents or [])
+    filtered_docs = [doc for doc in current_docs if doc.get("file_path") != file_path]
+    
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
+            
+    claim.supporting_documents = filtered_docs
+    db.commit()
+    db.refresh(claim)
+    
+    return {"supporting_documents": claim.supporting_documents}
