@@ -25,7 +25,7 @@ def get_claim_audit(claim_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Claim not found.")
         
     patient = db.query(Patient).filter(Patient.id == claim.patient_id).first()
-    records = db.query(Record).filter(Record.patient_id == claim.patient_id).all()
+    records = db.query(Record).filter(Record.patient_id == claim.patient_id, Record.record_type != "INSURANCE_POLICY").all()
     
     # Analyze EMR uploads to audit gaps
     uploaded_types = [r.record_type for r in records]

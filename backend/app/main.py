@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.database import engine, Base
 from app import models  # Force registration of models
-from app.routers import records, patients, claims
+from app.routers import records, patients, claims, insurance, personal_documents
 
 # Auto-create database tables on startup
 Base.metadata.create_all(bind=engine)
@@ -24,6 +24,33 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.include_router(records.router)
 app.include_router(patients.router)
 app.include_router(claims.router)
+app.include_router(insurance.router)
+app.include_router(personal_documents.router)
+
+import asyncio
+from app.database import SessionLocal
+from app.routers.insurance import periodic_checkup_notification_worker
+
+from sqlalchemy import text
+
+def check_and_add_columns():
+    db = SessionLocal()
+    try:
+        db.execute(text("SELECT insurer_email FROM insurance_policies LIMIT 1"))
+    except Exception:
+        try:
+            db.execute(text("ALTER TABLE insurance_policies ADD COLUMN insurer_email VARCHAR"))
+            db.commit()
+            print("[DB UPDATE] Successfully added insurer_email column to insurance_policies.")
+        except Exception as alter_err:
+            print(f"[DB UPDATE ERROR] Failed to add insurer_email column: {str(alter_err)}")
+    finally:
+        db.close()
+
+@app.on_event("startup")
+def startup_event():
+    check_and_add_columns()
+    asyncio.create_task(periodic_checkup_notification_worker())
 
 # CORS middleware configuration to allow frontend requests
 app.add_middleware(

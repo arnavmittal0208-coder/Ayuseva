@@ -14,7 +14,7 @@ class PatientCreate(BaseModel):
     name: str
     phone: str
     dob: str
-    insurer: str
+    insurer: str = ""
 
 def generate_unique_patient_id(db: Session) -> str:
     """Generates a unique patient ID in the format CARE-XXXXXX"""
@@ -30,19 +30,12 @@ def register_patient(patient_in: PatientCreate, db: Session = Depends(get_db)):
     """Registers a new patient and generates a unique local UID"""
     uid = generate_unique_patient_id(db)
     
-    policy_details = {
-        "insurer": patient_in.insurer,
-        "policy_number": f"POL-{random.randint(10000000, 99999999)}",
-        "coverage_limit": 500000.0,
-        "free_checkups_left": 2
-    }
-    
     new_patient = Patient(
         id=uid,
         name=patient_in.name,
         phone=patient_in.phone,
         dob=patient_in.dob,
-        policy_details=policy_details
+        policy_details=None
     )
     db.add(new_patient)
     db.commit()
@@ -75,7 +68,7 @@ def get_patient_timeline(uid: str, db: Session = Depends(get_db)):
     
     # Query records for the patient, sorting by date descending
     # (Since date is stored as a string "YYYY-MM-DD", string sorting works perfectly)
-    records = db.query(Record).filter(Record.patient_id == uid).order_by(Record.date.desc()).all()
+    records = db.query(Record).filter(Record.patient_id == uid, Record.record_type != "INSURANCE_POLICY").order_by(Record.date.desc()).all()
     
     return {
         "patient": {
@@ -135,7 +128,7 @@ def get_clinical_contexts(
     if not patient:
         raise HTTPException(status_code=404, detail=f"Patient with ID {uid} not found.")
 
-    records = db.query(Record).filter(Record.patient_id == uid).order_by(Record.date.asc()).all()
+    records = db.query(Record).filter(Record.patient_id == uid, Record.record_type != "INSURANCE_POLICY").order_by(Record.date.asc()).all()
     detection = detect_clinical_contexts(
         _serialize_records(records),
         current_visit_reason=current_visit_reason,
@@ -164,7 +157,7 @@ def get_clinical_brief(
     if not patient:
         raise HTTPException(status_code=404, detail=f"Patient with ID {uid} not found.")
         
-    records = db.query(Record).filter(Record.patient_id == uid).all()
+    records = db.query(Record).filter(Record.patient_id == uid, Record.record_type != "INSURANCE_POLICY").all()
     if not records:
         return {
             "specialty": specialty,
@@ -291,3 +284,21 @@ def get_clinical_brief(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to generate clinical brief: {str(e)}")
+
+@router.delete("/{uid}")
+def delete_patient(uid: str, db: Session = Depends(get_db)):
+    """Deletes a patient and all their associated records, claims, and briefs."""
+    patient = db.query(Patient).filter(Patient.id == uid).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail=f"Patient with ID {uid} not found.")
+    
+    try:
+        # Explicitly delete any associated ClinicalBrief cached rows
+        db.query(ClinicalBrief).filter(ClinicalBrief.patient_id == uid).delete()
+        db.delete(patient)
+        db.commit()
+        return {"message": f"Patient {uid} and all associated records deleted successfully."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete patient: {str(e)}")
+
