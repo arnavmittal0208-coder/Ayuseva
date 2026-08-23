@@ -8,7 +8,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts'
 
-const BASE_URL = "http://localhost:8000"
+const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:8000"
 
 const formatToIndianDate = (text) => {
   if (!text) return '';

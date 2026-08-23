@@ -16,9 +16,26 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Mount uploads static files directory
+# Create local uploads folder
 os.makedirs("uploads", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+from fastapi.responses import RedirectResponse, FileResponse
+from fastapi import HTTPException
+
+@app.get("/uploads/{filename}")
+def serve_uploads_file(filename: str):
+    """
+    Serves files by redirecting to Supabase Storage if configured, 
+    otherwise falls back to serving from the local disk directory.
+    """
+    if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY:
+        public_url = f"{settings.SUPABASE_URL.rstrip('/')}/storage/v1/object/public/ayuseva-documents/{filename}"
+        return RedirectResponse(url=public_url)
+        
+    local_path = os.path.join("uploads", filename)
+    if os.path.exists(local_path):
+        return FileResponse(local_path)
+    raise HTTPException(status_code=404, detail="File not found")
 
 # Register routers
 app.include_router(records.router)
@@ -364,9 +381,15 @@ def startup_event():
     asyncio.create_task(periodic_checkup_notification_worker())
 
 # CORS middleware configuration to allow frontend requests
+allowed_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+if settings.FRONTEND_URL:
+    allowed_origins.append(settings.FRONTEND_URL)
+else:
+    allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

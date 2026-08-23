@@ -265,6 +265,9 @@ Frontend default URL: http://localhost:5173
 - NVIDIA_API_KEY
 - MOCK_EMAIL
 - PORT
+- FRONTEND_URL (your Vercel frontend URL to permit CORS)
+- SUPABASE_URL (your Supabase project URL for cloud file storage)
+- SUPABASE_SERVICE_ROLE_KEY (your Supabase API service role key)
 
 ### Frontend (frontend/.env)
 - VITE_API_BASE_URL (reserved for configurable API URL usage)

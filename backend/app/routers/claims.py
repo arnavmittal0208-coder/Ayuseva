@@ -432,17 +432,15 @@ def upload_supporting_document(
     if not claim:
         raise HTTPException(status_code=404, detail="Claim not found.")
         
-    os.makedirs("uploads/supporting_claims", exist_ok=True)
-    
     # Filter/clean filename characters to prevent path injections
     safe_name = "".join(c for c in file.filename if c.isalnum() or c in "._- ")
-    filename = f"supporting_{claim_id}_{int(datetime.utcnow().timestamp())}_{safe_name}"
-    file_path = os.path.join("uploads", "supporting_claims", filename).replace("\\", "/")
+    filename = f"supporting_claims/supporting_{claim_id}_{int(datetime.utcnow().timestamp())}_{safe_name}"
     
     try:
         content = file.file.read()
-        with open(file_path, "wb") as f:
-            f.write(content)
+        from app.services.storage import save_uploaded_file
+        content_type = getattr(file, "content_type", "application/octet-stream")
+        file_path = save_uploaded_file(filename, content, content_type)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save supporting document: {str(e)}")
         
@@ -472,11 +470,9 @@ def delete_supporting_document(
     current_docs = list(claim.supporting_documents or [])
     filtered_docs = [doc for doc in current_docs if doc.get("file_path") != file_path]
     
-    if os.path.exists(file_path):
-        try:
-            os.remove(file_path)
-        except Exception:
-            pass
+    if file_path:
+        from app.services.storage import delete_uploaded_file
+        delete_uploaded_file(file_path)
             
     claim.supporting_documents = filtered_docs
     db.commit()

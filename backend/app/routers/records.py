@@ -56,21 +56,19 @@ async def upload_medical_record(
             db.commit()
             db.refresh(patient)
 
-    # Save file locally
+    # Save file locally & Supabase
     file_ext = os.path.splitext(file.filename)[1]
     safe_filename = f"{patient_id}_{int(datetime.utcnow().timestamp())}{file_ext}"
-    file_path = os.path.join(UPLOAD_DIR, safe_filename)
-    
-    with open(file_path, "wb") as f:
-        f.write(file_bytes)
+    file_path = f"uploads/{safe_filename}"
+    from app.services.storage import save_uploaded_file, delete_uploaded_file
+    save_uploaded_file(safe_filename, file_bytes, file.content_type)
 
     # Call AI Parser Agent
     try:
         parsed_data = parse_medical_document(file_bytes, file.content_type)
     except Exception as e:
         # Clean up saved file on parsing error
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        delete_uploaded_file(file_path)
         raise HTTPException(status_code=500, detail=f"AI Ingestion failed: {str(e)}")
 
     # Persistent clinical context matching using AI reasoning
@@ -211,28 +209,26 @@ async def upload_insurance_policy(
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found.")
 
-    # Save file locally
+    # Save file locally & Supabase
     file_ext = os.path.splitext(file.filename)[1]
     safe_filename = f"{patient_id}_ins_{int(datetime.utcnow().timestamp())}{file_ext}"
-    file_path = os.path.join(UPLOAD_DIR, safe_filename)
-    
-    with open(file_path, "wb") as f:
-        f.write(file_bytes)
+    file_path = f"uploads/{safe_filename}"
+    from app.services.storage import save_uploaded_file, delete_uploaded_file
+    save_uploaded_file(safe_filename, file_bytes, file.content_type)
 
     # Call AI Parser Agent for Insurance Policy
     try:
         parsed_data = parse_insurance_document(file_bytes, file.content_type)
     except Exception as e:
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        delete_uploaded_file(file_path)
         raise HTTPException(status_code=500, detail=f"Insurance policy parsing failed: {str(e)}")
 
     start_date = normalize_date(parsed_data.get("start_date"))
     end_date = normalize_date(parsed_data.get("end_date"))
 
     if start_date and end_date and start_date > end_date:
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        from app.services.storage import delete_uploaded_file
+        delete_uploaded_file(file_path)
         raise HTTPException(
             status_code=400, 
             detail=f"Validation Error: Policy start date ({start_date}) cannot be after expiry date ({end_date})."
@@ -327,11 +323,10 @@ def delete_record(id: int, db: Session = Depends(get_db)):
     patient_id = record.patient_id
     
     try:
-        # Delete local file if exists
+        # Delete local file & Supabase
         if record.file_path:
-            full_path = os.path.join(".", record.file_path)
-            if os.path.exists(full_path):
-                os.remove(full_path)
+            from app.services.storage import delete_uploaded_file
+            delete_uploaded_file(record.file_path)
         
         # Invalidate clinical briefs by deleting cached entries for this patient
         db.query(ClinicalBrief).filter(ClinicalBrief.patient_id == patient_id).delete()

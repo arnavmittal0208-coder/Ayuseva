@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     NVIDIA_API_KEY: str = ""
     MOCK_EMAIL: bool = False
     PORT: int = 8000
+    FRONTEND_URL: str = ""
+    SUPABASE_URL: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
     
     # Allow loading from a .env file in the backend folder
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

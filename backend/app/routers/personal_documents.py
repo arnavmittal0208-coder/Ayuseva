@@ -65,13 +65,11 @@ async def upload_personal_document(
             detail="The 2 GB personal storage limit would be exceeded."
         )
 
-    # Save file locally
+    # Save file locally & Supabase
     file_ext = os.path.splitext(file.filename)[1]
     safe_filename = f"personal_{patient_id}_{int(datetime.utcnow().timestamp())}{file_ext}"
-    file_path = os.path.join(UPLOAD_DIR, safe_filename)
-
-    with open(file_path, "wb") as f:
-        f.write(file_bytes)
+    from app.services.storage import save_uploaded_file
+    save_uploaded_file(safe_filename, file_bytes, file.content_type)
 
     # Save to database
     new_doc = PersonalDocument(
@@ -103,13 +101,10 @@ def delete_personal_document(document_id: int, db: Session = Depends(get_db)):
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    # Delete local file if it exists
-    full_path = os.path.join(".", doc.file_path)
-    if os.path.exists(full_path):
-        try:
-            os.remove(full_path)
-        except Exception:
-            pass
+    # Delete local file & Supabase
+    if doc.file_path:
+        from app.services.storage import delete_uploaded_file
+        delete_uploaded_file(doc.file_path)
 
     db.delete(doc)
     db.commit()

@@ -99,27 +99,24 @@ async def upload_new_insurance_policy(
 
     file_bytes = await file.read()
     
-    # Save file locally
+    # Save file locally & Supabase
     file_ext = os.path.splitext(file.filename)[1]
     safe_filename = f"{patient_id}_ins_{int(datetime.utcnow().timestamp())}{file_ext}"
-    file_path = os.path.join(UPLOAD_DIR, safe_filename)
-    
-    with open(file_path, "wb") as f:
-        f.write(file_bytes)
+    file_path = f"uploads/{safe_filename}"
+    from app.services.storage import save_uploaded_file, delete_uploaded_file
+    save_uploaded_file(safe_filename, file_bytes, file.content_type)
 
     try:
         parsed_data = parse_insurance_document(file_bytes, file.content_type)
     except Exception as e:
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        delete_uploaded_file(file_path)
         raise HTTPException(status_code=500, detail=f"Insurance policy parsing failed: {str(e)}")
 
     start_date = normalize_date(parsed_data.get("start_date"))
     end_date = normalize_date(parsed_data.get("end_date"))
     
     if start_date and end_date and start_date > end_date:
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        delete_uploaded_file(file_path)
         raise HTTPException(
             status_code=400, 
             detail=f"Validation Error: Policy start date ({start_date}) cannot be after expiry date ({end_date})."
