@@ -58,7 +58,7 @@ def generate_clinical_brief(
            [Disease/Condition Name] SUMMARY
            
            Overview
-           [An explanation of the patient's current status for this condition. Detail-rich if complex, concise if simple.]
+           [A dynamic, case-dependent synthesis of the patient's overall condition and progression. Do NOT enforce a fixed word count or sentence limit. For simple cases, keep it to 2-3 concise sentences summarizing status. For complex cases with multiple records, diagnoses, medications, lab investigations, or clinical progression, expand the overview into a moderately longer, detail-rich clinical synthesis (e.g. 1-2 robust paragraphs) summarizing diagnostic findings, treatment changes, and the overall trajectory of the condition. Focus on summarizing the overall case rather than repeating just a single record, highlighting key clinical landmarks. Keep it practical, clinical, and factual without inventing any information.]
            
            CLINICAL PROGRESSION
            - [Date] — [Event/Diagnosis/Treatment]: [Detailed key findings, test results, diagnoses, or prescriptions from that record.]
@@ -78,6 +78,14 @@ def generate_clinical_brief(
 
     The JSON below contains the records to be processed. Do not invent other conditions. Everything in the summary must come from the actual records.
     
+    ### Clinical Overview Generation Principles:
+    - **Dynamic Case-Dependent Length**: Do NOT enforce a fixed word count, character limit, or fixed number of sentences. Adjust length based on case complexity.
+    - **Concise vs. Detailed**: 
+      * For a simple or limited clinical case, keep the summary highly concise (e.g. 2-3 sentences) focusing on key diagnostic findings and treatment.
+      * For a complex clinical case with multiple records, diagnoses, medications, procedures, or ongoing progression, allow the summary to scale dynamically and become moderately longer (e.g. 1-2 detail-rich paragraphs) to convey a complete longitudinal picture. Avoid making it unnecessarily verbose.
+    - **Synthesize Overall Case**: Summarize the overall case and clinical landmarks rather than repeating only one document.
+    - **Factual Integrity**: Do not invent facts or assume timelines (e.g. "long-standing") unless explicitly documented in the records.
+    
     ### Medical History JSON Context:
     {records_json_str}
 
@@ -88,7 +96,7 @@ def generate_clinical_brief(
     {{
         "specialty": "String",
         "summary_type": "String",
-        "clinical_summary": "String (This summary must represent the clinically relevant patient overview, history, progression, symptoms, laboratory/imaging findings, treatments, and procedures. Adjust the length and level of detail dynamically based on the complexity of the case: simple cases should be clear and concise, while complex longitudinal cases with many records must be fully detailed, highlighting progression over time, treatment changes, and current status. A visiting doctor should be able to read this summary and understand the clinical picture without having to open every individual document. Do not restrict the summary to a single concise paragraph if the case is complex.)",
+        "clinical_summary": "String (A clinically relevant synthesis of the patient's medical history, overview, progression, symptoms, laboratory/imaging findings, treatments, and procedures. This must follow the 'Clinical Overview Generation Principles' dynamically: concise for simple cases, and moderately detailed for complex cases, ensuring a doctor can understand the overall clinical picture without opening every document.)",
         "active_problems": [
             "String (A bulleted list of active problems, e.g., 'Hypertension diagnosed on 2025-06-10 [Record #1]')"
         ],
