@@ -1,4 +1,3 @@
-[README (2).md](https://github.com/user-attachments/files/31355919/README.2.md)
 # AyuSeva
 
 ### AI-Powered Clinical Intelligence & Insurance Orchestration Platform
