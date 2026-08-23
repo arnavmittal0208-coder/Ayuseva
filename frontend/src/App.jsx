@@ -3099,11 +3099,25 @@ function App() {
               <h3 className="text-xs font-bold text-slate-800 mb-3 flex items-center gap-1.5 uppercase tracking-wider text-slate-500">
                 <Upload className="w-4 h-4 text-slate-500" /> Ingest Medical Records
               </h3>
-              <label className="border-2 border-dashed border-slate-200 hover:border-teal-500 bg-slate-50 hover:bg-slate-100/50 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all group">
-                <Upload className="w-8 h-8 text-slate-400 group-hover:text-teal-600 mb-2 transition-colors" />
-                <span className="text-xs font-semibold text-slate-600">
-                  {uploading ? "AI Engine Reading..." : "Upload Clinical File"}
-                </span>
+              <label className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all group ${uploading ? 'bg-teal-50/20 border-teal-200 cursor-not-allowed' : 'border-slate-200 hover:border-teal-500 bg-slate-50 hover:bg-slate-100/50'}`}>
+                {uploading ? (
+                  <>
+                    <svg className="animate-spin h-8 w-8 text-teal-600 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="text-xs font-semibold text-slate-600">
+                      AI Engine Reading...
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-8 h-8 text-slate-400 group-hover:text-teal-600 mb-2 transition-colors" />
+                    <span className="text-xs font-semibold text-slate-600">
+                      Upload Clinical File
+                    </span>
+                  </>
+                )}
                 <span className="text-[10px] text-slate-400 mt-1">Accepts PDFs or photos</span>
                 
                 <input 
