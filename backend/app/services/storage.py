@@ -21,6 +21,7 @@ def save_uploaded_file(filename: str, file_bytes: bytes, content_type: str) -> s
         storage_path = filename.replace("\\", "/")
         url = f"{settings.SUPABASE_URL.rstrip('/')}/storage/v1/object/ayuseva-documents/{storage_path}"
         headers = {
+            "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
             "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
             "Content-Type": content_type
         }
@@ -62,6 +63,7 @@ def delete_uploaded_file(file_path: str):
         storage_path = filename.replace("\\", "/")
         url = f"{settings.SUPABASE_URL.rstrip('/')}/storage/v1/object/ayuseva-documents"
         headers = {
+            "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
             "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
             "Content-Type": "application/json"
         }
