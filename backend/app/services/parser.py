@@ -39,7 +39,7 @@ def clean_and_parse_json(text: str) -> dict:
 
 def parse_medical_document(file_bytes: bytes, mime_type: str) -> dict:
     """
-    Sends medical report image/PDF bytes to NVIDIA NIM API (Llama 3.2 Vision or Llama 3.1)
+    Sends medical report image/PDF bytes to NVIDIA NIM API (Llama 3.2 Vision)
     to perform parsing and extract structured clinical entities.
     """
     if not settings.NVIDIA_API_KEY:
@@ -135,10 +135,10 @@ def parse_medical_document(file_bytes: bytes, mime_type: str) -> dict:
         "Content-Type": "application/json"
     }
 
-    # If it is a PDF and has extracted text, send it to the text model Llama 3.1 8B
+    # If it is a PDF and has extracted text, send it to Llama 3.2
     if is_pdf and len(extracted_text.strip()) > 50:
         payload = {
-            "model": "meta/llama-3.1-8b-instruct",
+            "model": "meta/llama-3.2-11b-vision-instruct",
             "messages": [
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": f"Here is the text extracted from the medical PDF document:\n\n{extracted_text}"}
@@ -186,11 +186,11 @@ def parse_medical_document(file_bytes: bytes, mime_type: str) -> dict:
         parsed_data = clean_and_parse_json(response_text)
         return parsed_data
     except Exception as e:
-        print(f"Initial JSON parse failed. Invoking Llama-3.1-8b formatting fallback. Error: {str(e)}")
-        # Double-agent fallback: use Llama 3.1 8B text model to format the transcription to JSON
+        print(f"Initial JSON parse failed. Invoking Llama-3.2 formatting fallback. Error: {str(e)}")
+        # Double-agent fallback: use Llama 3.2 model to format the transcription to JSON
         try:
             fallback_payload = {
-                "model": "meta/llama-3.1-8b-instruct",
+                "model": "meta/llama-3.2-11b-vision-instruct",
                 "messages": [
                     {
                         "role": "system", 
@@ -310,7 +310,7 @@ def parse_insurance_document(file_bytes: bytes, mime_type: str) -> dict:
 
     if is_pdf and len(extracted_text.strip()) > 50:
         payload = {
-            "model": "meta/llama-3.1-8b-instruct",
+            "model": "meta/llama-3.2-11b-vision-instruct",
             "messages": [
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": f"Here is the text extracted from the insurance PDF document:\n\n{extracted_text}"}
@@ -361,7 +361,7 @@ def parse_insurance_document(file_bytes: bytes, mime_type: str) -> dict:
         print(f"Initial JSON parse failed. Invoking double-agent fallback. Error: {str(e)}")
         try:
             fallback_payload = {
-                "model": "meta/llama-3.1-8b-instruct",
+                "model": "meta/llama-3.2-11b-vision-instruct",
                 "messages": [
                     {
                         "role": "system", 

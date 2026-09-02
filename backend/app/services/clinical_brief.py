@@ -161,7 +161,7 @@ def generate_clinical_brief(
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "meta/llama-3.1-8b-instruct",
+        "model": "meta/llama-3.2-11b-vision-instruct",
         "messages": [
             {"role": "user", "content": prompt}
         ],

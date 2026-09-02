@@ -127,7 +127,7 @@ def analyze_cashless_claim_context(
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "meta/llama-3.1-8b-instruct",
+        "model": "meta/llama-3.2-11b-vision-instruct",
         "messages": [
             {"role": "user", "content": prompt}
         ],
@@ -314,7 +314,7 @@ def match_document_to_clinical_context(
     parsed_doc: dict
 ) -> dict:
     """
-    Leverages NVIDIA NIM Llama 3.1 8B to match an incoming document to an existing clinical context,
+    Leverages NVIDIA NIM Llama 3.2 to match an incoming document to an existing clinical context,
     or identify it as a genuinely different medical episode. Falls back to a smart local heuristic parser.
     """
     cond_name = extract_meaningful_condition_name(parsed_doc)
@@ -373,7 +373,7 @@ def match_document_to_clinical_context(
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "meta/llama-3.1-8b-instruct",
+        "model": "meta/llama-3.2-11b-vision-instruct",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.1,
         "max_tokens": 1000
@@ -452,7 +452,7 @@ def consolidate_existing_patient_records_ai(
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "meta/llama-3.1-8b-instruct",
+        "model": "meta/llama-3.2-11b-vision-instruct",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.1,
         "max_tokens": 2000
