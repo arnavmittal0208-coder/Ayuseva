@@ -9,6 +9,7 @@ import {
 } from 'recharts'
 import CurrentVisitIntake from './components/CurrentVisitIntake.jsx'
 import AyushClinicalDashboard from './components/AyushClinicalDashboard.jsx'
+import AyusevaLogin from './components/AyusevaLogin.jsx'
 
 const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:8000"
 
@@ -1730,156 +1731,44 @@ function App() {
     const demoPatientId = allPatients.length > 0 ? allPatients[0].id : 'CARE-000000'
     const demoPatientName = allPatients.length > 0 ? allPatients[0].name : 'No Patient Registered Yet'
 
+    const handleQuickPatientLogin = async () => {
+      if (allPatients.length > 0) {
+        setLoginPatientId(demoPatientId)
+        setLoading(true)
+        try {
+          await fetchPatientData(demoPatientId)
+          setUserRole('patient')
+          localStorage.setItem('userRole', 'patient')
+          localStorage.setItem('patientUid', demoPatientId)
+        } catch (err) {
+          setLoginError(err.message)
+        } finally {
+          setLoading(false)
+        }
+      } else {
+        setLoginError("No patients registered yet. Please log in as Admin to register a patient first.")
+      }
+    }
+
     return (
-      <div className="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col justify-center items-center p-4">
-        <div className="w-full max-w-md bg-slate-800 border border-slate-700/80 rounded-2xl shadow-xl overflow-hidden">
-          {/* Logo / Header */}
-          <div className="bg-teal-900/40 border-b border-slate-700/50 p-6 text-center">
-            <div className="bg-teal-500 p-2 rounded-xl text-slate-900 inline-block mb-3 shadow-md">
-              <Shield className="w-8 h-8" />
-            </div>
-            <h1 className="font-bold text-2xl tracking-tight text-white leading-none">AyuSeva Platform</h1>
-            <p className="text-xs text-slate-400 mt-2">Care & Cashless Claims Orchestration Portal</p>
-          </div>
-
-          {/* Form Tabs */}
-          <div className="flex border-b border-slate-700/50">
-            <button 
-              onClick={() => { setLoginTab('admin'); setLoginError(''); }}
-              className={`flex-1 py-3.5 text-sm font-semibold tracking-wide border-b-2 transition-all ${
-                loginTab === 'admin' 
-                  ? 'border-teal-500 text-white bg-slate-850' 
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              🏥 Hospital Admin
-            </button>
-            <button 
-              onClick={() => { setLoginTab('patient'); setLoginError(''); }}
-              className={`flex-1 py-3.5 text-sm font-semibold tracking-wide border-b-2 transition-all ${
-                loginTab === 'patient' 
-                  ? 'border-teal-500 text-white bg-slate-850' 
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              👤 Patient Portal
-            </button>
-          </div>
-
-          <div className="p-6">
-            {loginError && (
-              <div className="bg-rose-955/60 border border-rose-800 text-rose-300 rounded-lg p-3 text-xs mb-4 leading-normal flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                <span>{loginError}</span>
-              </div>
-            )}
-
-            {loginTab === 'admin' ? (
-              /* Hospital Admin Form */
-              <form onSubmit={handleAdminLoginSubmit} className="space-y-4">
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">Admin ID</label>
-                  <input 
-                    required
-                    value={loginUsername}
-                    onChange={(e) => setLoginUsername(e.target.value)}
-                    placeholder="e.g. admin1"
-                    className="w-full bg-slate-900 border border-slate-750 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-teal-500 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">Password</label>
-                  <input 
-                    required
-                    type="password"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-slate-900 border border-slate-750 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-teal-500 transition-colors"
-                  />
-                </div>
-                <button 
-                  type="submit"
-                  className="w-full bg-teal-600 hover:bg-teal-505 text-slate-900 font-bold py-2.5 rounded-lg text-sm transition-all shadow-md mt-6 flex items-center justify-center gap-1.5"
-                >
-                  <Shield className="w-4 h-4" /> Log In as Admin
-                </button>
-              </form>
-            ) : (
-              /* Patient Portal Form */
-              <form onSubmit={handlePatientLoginSubmit} className="space-y-4">
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">Patient Local UID</label>
-                  <input 
-                    required
-                    value={loginPatientId}
-                    onChange={(e) => setLoginPatientId(e.target.value)}
-                    placeholder="e.g. CARE-928104"
-                    className="w-full bg-slate-900 border border-slate-750 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-teal-500 transition-colors uppercase"
-                  />
-                </div>
-                <button 
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-teal-600 hover:bg-teal-505 text-slate-900 font-bold py-2.5 rounded-lg text-sm transition-all shadow-md mt-6 flex items-center justify-center gap-1.5 disabled:opacity-55"
-                >
-                  {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <User className="w-4 h-4" />}
-                  Log In to Patient Account
-                </button>
-              </form>
-            )}
-
-            {/* Quick Demo Logins */}
-            <div className="mt-8 pt-6 border-t border-slate-700/50 text-center">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-3">Prototype Sandbox Quick Logins</span>
-              
-              {loginTab === 'admin' ? (
-                <div className="grid grid-cols-2 gap-2">
-                  <button 
-                    onClick={() => { setLoginUsername('admin1'); setLoginPassword('password123'); }}
-                    className="bg-slate-750 hover:bg-slate-700 text-slate-300 font-medium px-3 py-2 rounded-lg text-xs transition-colors border border-slate-700"
-                  >
-                    Demo Admin 1
-                  </button>
-                  <button 
-                    onClick={() => { setLoginUsername('admin2'); setLoginPassword('password456'); }}
-                    className="bg-slate-750 hover:bg-slate-700 text-slate-300 font-medium px-3 py-2 rounded-lg text-xs transition-colors border border-slate-700"
-                  >
-                    Demo Admin 2
-                  </button>
-                </div>
-              ) : (
-                <button 
-                  onClick={async () => {
-                    if (allPatients.length > 0) {
-                      setLoginPatientId(demoPatientId)
-                      setLoading(true)
-                      try {
-                        await fetchPatientData(demoPatientId)
-                        setUserRole('patient')
-                        localStorage.setItem('userRole', 'patient')
-                        localStorage.setItem('patientUid', demoPatientId)
-                      } catch (err) {
-                        setLoginError(err.message)
-                      } finally {
-                        setLoading(false)
-                      }
-                    } else {
-                      setLoginError("No patients registered yet. Please log in as Admin to register a patient first.")
-                    }
-                  }}
-                  className="w-full bg-slate-755 hover:bg-slate-700 text-slate-300 font-medium px-3 py-2.5 rounded-lg text-xs transition-colors border border-slate-700 flex flex-col items-center justify-center gap-0.5"
-                >
-                  <span className="font-semibold text-slate-200">Login as Demo Patient</span>
-                  <span className="text-[9px] text-slate-400 font-mono">({demoPatientName} | {demoPatientId})</span>
-                </button>
-              )}
-            </div>
-
-          </div>
-        </div>
-        <p className="text-[10px] text-slate-650 mt-6">AyuSeva Healthcare System Sandbox • Local SQLite Mode</p>
-      </div>
+      <AyusevaLogin
+        loginTab={loginTab}
+        setLoginTab={setLoginTab}
+        loginUsername={loginUsername}
+        setLoginUsername={setLoginUsername}
+        loginPassword={loginPassword}
+        setLoginPassword={setLoginPassword}
+        loginPatientId={loginPatientId}
+        setLoginPatientId={setLoginPatientId}
+        loginError={loginError}
+        setLoginError={setLoginError}
+        loading={loading}
+        handleAdminLoginSubmit={handleAdminLoginSubmit}
+        handlePatientLoginSubmit={handlePatientLoginSubmit}
+        demoPatientId={demoPatientId}
+        demoPatientName={demoPatientName}
+        onQuickPatientLogin={handleQuickPatientLogin}
+      />
     )
   }
 
@@ -5500,24 +5389,6 @@ function App() {
             <Activity className="w-4 h-4" /> Overview / Dashboard
           </button>
           <button 
-            onClick={() => setAdminView('medikiosk')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'medikiosk' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
-          >
-            <Clock className="w-4 h-4" /> MediKiosk Intake
-          </button>
-          <button 
-            onClick={() => setAdminView('ayush')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'ayush' ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
-          >
-            <Leaf className="w-4 h-4 text-emerald-400" /> AYUSH Assessment
-          </button>
-          <button 
-            onClick={() => { setNewlyRegisteredPatient(null); setAdminView('register'); }}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'register' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
-          >
-            <PlusCircle className="w-4 h-4" /> Register Patient
-          </button>
-          <button 
             onClick={() => setAdminView('patients')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'patients' || adminView === 'patient-profile' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
           >
@@ -5528,6 +5399,18 @@ function App() {
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'records' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
           >
             <FileText className="w-4 h-4" /> Medical Records Feed
+          </button>
+          <button 
+            onClick={() => setAdminView('medikiosk')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'medikiosk' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+          >
+            <Clock className="w-4 h-4" /> MediKiosk Intake
+          </button>
+          <button 
+            onClick={() => setAdminView('ayush')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'ayush' ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+          >
+            <Leaf className="w-4 h-4 text-emerald-400" /> AYUSH Assessment
           </button>
           <button 
             onClick={() => setAdminView('emergency')}
