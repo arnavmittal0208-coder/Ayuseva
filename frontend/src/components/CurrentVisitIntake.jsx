@@ -12,6 +12,7 @@ export default function CurrentVisitIntake({
   patient = null,
   allPatients = [],
   onSelectPatient = () => {},
+  onBack = null,
   showToast = () => {},
   baseUrl = 'http://localhost:8000'
 }) {
@@ -20,6 +21,7 @@ export default function CurrentVisitIntake({
   const [selectedIntake, setSelectedIntake] = useState(null);
   const [intakesList, setIntakesList] = useState([]);
   const [loadingIntakes, setLoadingIntakes] = useState(false);
+  const [showPatientSwitcher, setShowPatientSwitcher] = useState(false);
 
   // Kiosk patient selection
   const [kioskPatientInput, setKioskPatientInput] = useState('');
@@ -708,8 +710,19 @@ export default function CurrentVisitIntake({
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="bg-gradient-to-br from-slate-900 via-teal-950 to-slate-900 text-white rounded-3xl p-8 shadow-xl relative overflow-hidden border border-teal-900/40">
           <div className="relative z-10 space-y-3">
-            <div className="inline-flex items-center gap-2 bg-teal-500/20 text-teal-300 border border-teal-500/40 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              <Clock className="w-3.5 h-3.5 text-teal-400" /> MediKiosk Outpatient Reception
+            <div className="flex flex-wrap justify-between items-center gap-3">
+              <div className="inline-flex items-center gap-2 bg-teal-500/20 text-teal-300 border border-teal-500/40 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                <Clock className="w-3.5 h-3.5 text-teal-400" /> MediKiosk Outpatient Reception
+              </div>
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+                </button>
+              )}
             </div>
             <h2 className="text-2xl lg:text-3xl font-extrabold tracking-tight">
               AyuSeva MediKiosk Voice Check-In
@@ -807,7 +820,26 @@ export default function CurrentVisitIntake({
       {/* Top Navigation & Status Header */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${
+          {onBack && (
+            <button
+              type="button"
+              onClick={() => {
+                if (viewState !== 'list') {
+                  stopAudio();
+                  setViewState('list');
+                } else {
+                  onBack();
+                }
+              }}
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shrink-0"
+              title={viewState !== 'list' ? 'Back to Intakes List' : 'Back to Dashboard'}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back</span>
+            </button>
+          )}
+
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 ${
             mode === 'kiosk' ? 'bg-teal-900 text-teal-300' : 'bg-slate-900 text-teal-400'
           }`}>
             {mode === 'kiosk' ? <Clock className="w-5 h-5" /> : <Stethoscope className="w-5 h-5" />}
@@ -817,7 +849,7 @@ export default function CurrentVisitIntake({
               <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                 mode === 'kiosk' ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-slate-100 text-slate-700'
               }`}>
-                {mode === 'kiosk' ? 'MediKiosk Intake Station' : 'Patient Mobile Self-Service'}
+                {mode === 'kiosk' ? 'MediKiosk Intake Station' : 'Patient Current Visit Intake'}
               </span>
               <span className="text-xs text-slate-300">•</span>
               <span className="text-xs font-mono font-bold text-slate-600">UID: {patient?.id}</span>
@@ -831,6 +863,7 @@ export default function CurrentVisitIntake({
         <div className="flex items-center gap-2">
           {viewState !== 'list' && (
             <button
+              type="button"
               onClick={() => {
                 stopAudio();
                 setViewState('list');
@@ -843,6 +876,7 @@ export default function CurrentVisitIntake({
 
           {viewState === 'list' && (
             <button
+              type="button"
               onClick={() => startNewIntake(selectedLanguage)}
               className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
@@ -850,18 +884,72 @@ export default function CurrentVisitIntake({
             </button>
           )}
 
-          {mode === 'kiosk' && (
+          {/* Switch Patient button & dropdown */}
+          <div className="relative">
             <button
+              type="button"
               onClick={() => {
-                stopAudio();
-                onSelectPatient(null);
-                setViewState('list');
+                if (!allPatients || allPatients.length <= 1) {
+                  stopAudio();
+                  onSelectPatient(null);
+                  setViewState('list');
+                } else {
+                  setShowPatientSwitcher(prev => !prev);
+                }
               }}
-              className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+              className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Switch to another patient"
             >
-              Switch Patient
+              <User className="w-3.5 h-3.5 text-teal-600" />
+              <span>Switch Patient</span>
+              {allPatients && allPatients.length > 1 && (
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              )}
             </button>
-          )}
+
+            {showPatientSwitcher && allPatients && allPatients.length > 1 && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 z-50 space-y-2 animate-in fade-in slide-in-from-top-2">
+                <div className="flex justify-between items-center px-1 pb-2 border-b border-slate-100">
+                  <span className="text-xs font-bold text-slate-700">Switch Patient</span>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      stopAudio();
+                      setShowPatientSwitcher(false);
+                      onSelectPatient(null);
+                      setViewState('list');
+                    }}
+                    className="text-[10px] text-teal-600 hover:text-teal-700 font-bold cursor-pointer hover:underline"
+                  >
+                    Clear / Search UID
+                  </button>
+                </div>
+                <div className="max-h-56 overflow-y-auto space-y-1">
+                  {allPatients.map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        stopAudio();
+                        setShowPatientSwitcher(false);
+                        onSelectPatient(p.id);
+                        setViewState('list');
+                      }}
+                      className={`w-full text-left px-2.5 py-2 rounded-xl text-xs transition-all flex items-center justify-between cursor-pointer ${
+                        p.id === patient?.id ? 'bg-teal-50 text-teal-900 font-bold border border-teal-200' : 'hover:bg-slate-50 text-slate-700 border border-transparent'
+                      }`}
+                    >
+                      <div className="truncate mr-2">
+                        <p className="truncate font-semibold">{p.name || 'Unnamed'}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">{p.id}</p>
+                      </div>
+                      {p.id === patient?.id && <Check className="w-4 h-4 text-teal-600 shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1553,9 +1641,16 @@ export default function CurrentVisitIntake({
         <div className="space-y-6">
           
           {/* Action Header (Hidden during Print) */}
-          <div className="no-print bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-700">
+          <div className="no-print bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-wrap justify-between items-center gap-3">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setViewState('list')}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+              >
+                <ArrowLeft className="w-4 h-4" /> Back to Intakes List
+              </button>
+              <span className="text-xs font-bold text-slate-700 hidden sm:inline">
                 Document Generated: {selectedIntake.visit_date_formatted} at {selectedIntake.visit_time_formatted}
               </span>
             </div>

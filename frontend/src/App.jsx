@@ -1210,7 +1210,12 @@ function App() {
   }
 
   const fetchPatientData = async (uid) => {
-    if (!uid) return
+    if (!uid) {
+      clearPatientScopedState()
+      setPatientId('')
+      setLoading(false)
+      return
+    }
     const seq = ++patientLoadSeq.current
     activeUidRef.current = uid
     setLoading(true)
@@ -2914,6 +2919,7 @@ function App() {
                     patient={activePatient}
                     allPatients={allPatients}
                     onSelectPatient={fetchPatientData}
+                    onBack={() => setAdminView('overview')}
                     showToast={showToast}
                     baseUrl={BASE_URL}
                   />
@@ -5575,6 +5581,7 @@ function App() {
               patient={activePatient}
               allPatients={allPatients}
               onSelectPatient={fetchPatientData}
+              onBack={() => setAdminView('overview')}
               showToast={showToast}
               baseUrl={BASE_URL}
             />
