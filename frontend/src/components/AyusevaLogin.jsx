@@ -25,15 +25,15 @@ export default function AyusevaLogin({
     <div className="ayuseva-login-root">
       <style>{`
         .ayuseva-login-root {
-          --ivory: #F6F2EA;
-          --ivory-dim: #EDE7DA;
-          --forest: #153833;
-          --forest-deep: #0F2925;
-          --ink: #20211D;
-          --brass: #A9814B;
-          --brass-soft: #D9C6A0;
-          --sage: #CFE0D3;
-          --line: #DCD4C2;
+          --ivory: #FBF3E7;
+          --ivory-dim: #F3EFFA;
+          --forest: #5B5FEF;
+          --forest-deep: #4548C7;
+          --ink: #2B2A3D;
+          --brass: #6C63FF;
+          --brass-soft: #C9C6F0;
+          --sage: #DCD9F5;
+          --line: #E2DCEE;
 
           box-sizing: border-box;
           margin: 0;
@@ -41,7 +41,7 @@ export default function AyusevaLogin({
           height: 100vh;
           height: 100dvh;
           width: 100%;
-          background: var(--ivory);
+          background: linear-gradient(135deg, #FBF1E4 0%, #F2ECF9 55%, #E4E0F5 100%);
           color: var(--ink);
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           overflow: hidden;
@@ -78,7 +78,7 @@ export default function AyusevaLogin({
           position: absolute;
           inset: 0;
           background-image:
-            repeating-linear-gradient(115deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 64px);
+            repeating-linear-gradient(115deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 64px);
           pointer-events: none;
         }
 
@@ -251,7 +251,7 @@ export default function AyusevaLogin({
 
         .hero-badge .b-text .lbl {
           font-size: 9.5px;
-          color: #847E6E;
+          color: #7A7699;
           line-height: 1.2;
           margin-top: 1px;
           white-space: nowrap;
@@ -278,7 +278,7 @@ export default function AyusevaLogin({
           justify-content: center;
           padding: clamp(16px, 3vh, 40px) clamp(24px, 3vw, 48px);
           min-height: 0;
-          background: var(--ivory);
+          background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.5), transparent 55%);
         }
 
         .form-wrap {
@@ -300,7 +300,7 @@ export default function AyusevaLogin({
 
         .form-wrap .sub {
           font-size: 13.5px;
-          color: #6B6558;
+          color: #6B6580;
         }
 
         .segmented {
@@ -316,7 +316,7 @@ export default function AyusevaLogin({
           font-family: 'Inter', sans-serif;
           font-size: 14px;
           font-weight: 500;
-          color: #8A8272;
+          color: #8B87A8;
           padding: 0 0 10px;
           cursor: pointer;
           position: relative;
@@ -354,7 +354,7 @@ export default function AyusevaLogin({
           display: block;
           font-size: 12.5px;
           font-weight: 500;
-          color: #5B5648;
+          color: #4A4768;
           margin-bottom: 6px;
         }
 
@@ -365,19 +365,19 @@ export default function AyusevaLogin({
           font-family: 'Inter', sans-serif;
           border: 1px solid var(--line);
           border-radius: 6px;
-          background: #FFFDF9;
+          background: #FBFAFF;
           color: var(--ink);
           outline: none;
           transition: border-color .15s ease, box-shadow .15s ease;
         }
 
         .field input::placeholder {
-          color: #B4AC9A;
+          color: #A8A3C4;
         }
 
         .field input:focus {
           border-color: var(--brass);
-          box-shadow: 0 0 0 3px rgba(169, 129, 75, 0.14);
+          box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.14);
         }
 
         .row-between {
@@ -390,7 +390,7 @@ export default function AyusevaLogin({
           font-size: 12.5px;
           color: var(--forest);
           text-decoration: none;
-          border-bottom: 1px solid rgba(21, 56, 51, 0.3);
+          border-bottom: 1px solid rgba(91, 95, 239, 0.3);
           cursor: pointer;
         }
 
@@ -456,7 +456,7 @@ export default function AyusevaLogin({
 
         .login-divider span {
           font-size: 11.5px;
-          color: #9C9484;
+          color: #9A96B8;
           white-space: nowrap;
         }
 
@@ -474,7 +474,7 @@ export default function AyusevaLogin({
           font-family: 'Inter', sans-serif;
           font-size: 12.5px;
           font-weight: 500;
-          color: #5B5648;
+          color: #4A4768;
           cursor: pointer;
           transition: border-color .15s ease, color .15s ease, background-color .15s ease;
           text-align: center;
@@ -483,7 +483,7 @@ export default function AyusevaLogin({
         .chip:hover {
           border-color: var(--brass);
           color: var(--forest);
-          background-color: #FFFDF9;
+          background-color: #FBFAFF;
         }
 
         .chip-patient {
@@ -497,14 +497,14 @@ export default function AyusevaLogin({
 
         .chip-patient .patient-sub {
           font-size: 10px;
-          color: #8A8272;
+          color: #8B87A8;
           font-family: monospace;
         }
 
         .env-note {
           text-align: center;
           font-size: 11.5px;
-          color: #B0A996;
+          color: #ADA8C8;
           margin-top: clamp(14px, 2.6vh, 22px);
         }
 
@@ -533,8 +533,8 @@ export default function AyusevaLogin({
         <div className="login-brand">
           <div className="brand-mark">
             <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M16 3L27 7.5V15C27 22.2 22.4 27.6 16 29.5C9.6 27.6 5 22.2 5 15V7.5L16 3Z" stroke="#D9C6A0" strokeWidth="1.4" />
-              <path d="M16 10V20M11 15H21" stroke="#D9C6A0" strokeWidth="1.4" strokeLinecap="round" />
+              <path d="M16 3L27 7.5V15C27 22.2 22.4 27.6 16 29.5C9.6 27.6 5 22.2 5 15V7.5L16 3Z" stroke="#C9C6F0" strokeWidth="1.4" />
+              <path d="M16 10V20M11 15H21" stroke="#C9C6F0" strokeWidth="1.4" strokeLinecap="round" />
             </svg>
             <span>AyuSeva</span>
           </div>
@@ -551,28 +551,28 @@ export default function AyusevaLogin({
               {/* Admin / Doctor Illustration */}
               <div className={`login-illus ${!isPatient ? 'is-active' : ''}`} id="illus-admin">
                 <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="400" height="400" fill="#EDE7DA" />
-                  <circle cx="205" cy="185" r="150" fill="#CFE0D3" opacity="0.55" />
-                  <circle cx="330" cy="70" r="26" fill="#D9C6A0" opacity="0.4" />
-                  <circle cx="45" cy="330" r="16" fill="#153833" opacity="0.12" />
+                  <rect width="400" height="400" fill="#F3EFFA" />
+                  <circle cx="205" cy="185" r="150" fill="#DCD9F5" opacity="0.55" />
+                  <circle cx="330" cy="70" r="26" fill="#C9C6F0" opacity="0.4" />
+                  <circle cx="45" cy="330" r="16" fill="#5B5FEF" opacity="0.12" />
 
                   <g className="illus-figure">
-                    <path d="M60 400 C60 330 130 300 200 300 C270 300 340 330 340 400 Z" fill="#153833" />
+                    <path d="M60 400 C60 330 130 300 200 300 C270 300 340 330 340 400 Z" fill="#5B5FEF" />
                     <path d="M95 400 C90 320 120 260 145 245 L165 268 L200 250 L235 268 L255 245 C280 260 310 320 305 400 Z" fill="#FBF8F2" />
                     <path d="M165 268 L200 250 L192 320 Z" fill="#E4DCC8" />
                     <path d="M235 268 L200 250 L208 320 Z" fill="#E4DCC8" />
-                    <path d="M180 252 L200 275 L220 252 L215 240 L185 240 Z" fill="#CFE0D3" />
-                    <path d="M195 258 L205 258 L212 300 L200 320 L188 300 Z" fill="#A9814B" />
-                    <path d="M150 258 C140 300 150 330 175 335 C190 337 198 325 196 312" fill="none" stroke="#153833" strokeWidth="5" strokeLinecap="round" />
-                    <path d="M250 258 C260 300 250 330 225 335" fill="none" stroke="#153833" strokeWidth="5" strokeLinecap="round" />
-                    <circle cx="197" cy="313" r="8" fill="#153833" />
+                    <path d="M180 252 L200 275 L220 252 L215 240 L185 240 Z" fill="#DCD9F5" />
+                    <path d="M195 258 L205 258 L212 300 L200 320 L188 300 Z" fill="#6C63FF" />
+                    <path d="M150 258 C140 300 150 330 175 335 C190 337 198 325 196 312" fill="none" stroke="#5B5FEF" strokeWidth="5" strokeLinecap="round" />
+                    <path d="M250 258 C260 300 250 330 225 335" fill="none" stroke="#5B5FEF" strokeWidth="5" strokeLinecap="round" />
+                    <circle cx="197" cy="313" r="8" fill="#5B5FEF" />
                     <rect x="187" y="215" width="26" height="35" rx="10" fill="#EBB98C" />
                     <ellipse cx="200" cy="175" rx="46" ry="50" fill="#F2C9A6" />
                     <path d="M154 170 C150 120 175 95 200 95 C225 95 250 120 246 170 C244 145 225 150 200 148 C175 150 156 145 154 170 Z" fill="#2A2622" />
                     <ellipse cx="152" cy="180" rx="7" ry="11" fill="#F2C9A6" />
                     <ellipse cx="248" cy="180" rx="7" ry="11" fill="#F2C9A6" />
-                    <circle cx="183" cy="178" r="4.5" fill="#20211D" />
-                    <circle cx="217" cy="178" r="4.5" fill="#20211D" />
+                    <circle cx="183" cy="178" r="4.5" fill="#2B2A3D" />
+                    <circle cx="217" cy="178" r="4.5" fill="#2B2A3D" />
                     <path d="M174 166 q9 -6 18 0" stroke="#2A2622" strokeWidth="3" fill="none" strokeLinecap="round" />
                     <path d="M208 166 q9 -6 18 0" stroke="#2A2622" strokeWidth="3" fill="none" strokeLinecap="round" />
                     <path d="M182 197 q18 16 36 0" stroke="#8A4A32" strokeWidth="4" fill="none" strokeLinecap="round" />
@@ -580,7 +580,7 @@ export default function AyusevaLogin({
                     <g className="illus-pen-arm">
                       <path d="M120 400 C108 350 118 300 148 278 C158 290 168 300 165 312 C150 330 140 355 148 400 Z" fill="#FBF8F2" />
                       <ellipse cx="150" cy="278" rx="14" ry="16" fill="#F2C9A6" />
-                      <rect x="140" y="250" width="6" height="40" rx="3" fill="#A9814B" transform="rotate(18 143 270)" />
+                      <rect x="140" y="250" width="6" height="40" rx="3" fill="#6C63FF" transform="rotate(18 143 270)" />
                     </g>
                   </g>
                 </svg>
@@ -612,15 +612,15 @@ export default function AyusevaLogin({
               {/* Patient Illustration */}
               <div className={`login-illus ${isPatient ? 'is-active' : ''}`} id="illus-patient">
                 <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="400" height="400" fill="#EDE7DA" />
-                  <circle cx="205" cy="185" r="150" fill="#D9C6A0" opacity="0.35" />
-                  <circle cx="330" cy="70" r="26" fill="#CFE0D3" opacity="0.5" />
-                  <circle cx="45" cy="330" r="16" fill="#153833" opacity="0.12" />
+                  <rect width="400" height="400" fill="#F3EFFA" />
+                  <circle cx="205" cy="185" r="150" fill="#C9C6F0" opacity="0.35" />
+                  <circle cx="330" cy="70" r="26" fill="#DCD9F5" opacity="0.5" />
+                  <circle cx="45" cy="330" r="16" fill="#5B5FEF" opacity="0.12" />
 
                   <g className="illus-figure">
-                    <path d="M60 400 C60 330 130 300 200 300 C270 300 340 330 340 400 Z" fill="#153833" />
-                    <path d="M100 400 C96 325 122 268 160 252 L200 268 L240 252 C278 268 304 325 300 400 Z" fill="#CFE0D3" />
-                    <path d="M178 258 L200 278 L222 258 L216 246 L184 246 Z" fill="#F6F2EA" />
+                    <path d="M60 400 C60 330 130 300 200 300 C270 300 340 330 340 400 Z" fill="#5B5FEF" />
+                    <path d="M100 400 C96 325 122 268 160 252 L200 268 L240 252 C278 268 304 325 300 400 Z" fill="#DCD9F5" />
+                    <path d="M178 258 L200 278 L222 258 L216 246 L184 246 Z" fill="#FBF3E7" />
                     <rect x="187" y="215" width="26" height="35" rx="10" fill="#EBB98C" />
                     <ellipse cx="200" cy="175" rx="46" ry="50" fill="#F2C9A6" />
                     <path d="M152 178 C146 120 172 92 200 92 C230 92 254 122 250 178 C252 130 224 118 200 118 C176 118 150 132 152 178 Z" fill="#3A2E23" />
@@ -628,16 +628,16 @@ export default function AyusevaLogin({
                     <path d="M250 175 C254 210 250 250 242 275 L228 270 C235 240 236 205 232 178 Z" fill="#3A2E23" />
                     <ellipse cx="152" cy="182" rx="7" ry="11" fill="#F2C9A6" />
                     <ellipse cx="248" cy="182" rx="7" ry="11" fill="#F2C9A6" />
-                    <circle cx="183" cy="180" r="4.5" fill="#20211D" />
-                    <circle cx="217" cy="180" r="4.5" fill="#20211D" />
+                    <circle cx="183" cy="180" r="4.5" fill="#2B2A3D" />
+                    <circle cx="217" cy="180" r="4.5" fill="#2B2A3D" />
                     <path d="M175 168 q8 -5 16 0" stroke="#3A2E23" strokeWidth="3" fill="none" strokeLinecap="round" />
                     <path d="M209 168 q8 -5 16 0" stroke="#3A2E23" strokeWidth="3" fill="none" strokeLinecap="round" />
                     <path d="M183 199 q17 14 34 0" stroke="#8A4A32" strokeWidth="4" fill="none" strokeLinecap="round" />
 
-                    <path d="M225 400 C218 355 224 315 244 296 C258 304 268 316 264 328 C250 344 244 368 250 400 Z" fill="#CFE0D3" />
+                    <path d="M225 400 C218 355 224 315 244 296 C258 304 268 316 264 328 C250 344 244 368 250 400 Z" fill="#DCD9F5" />
                     <ellipse cx="252" cy="298" rx="13" ry="15" fill="#F2C9A6" />
-                    <rect x="252" y="270" width="30" height="46" rx="6" fill="#153833" transform="rotate(8 267 293)" />
-                    <rect x="256" y="276" width="22" height="30" rx="2" fill="#F6F2EA" transform="rotate(8 267 291)" className="illus-phone-glow" />
+                    <rect x="252" y="270" width="30" height="46" rx="6" fill="#5B5FEF" transform="rotate(8 267 293)" />
+                    <rect x="256" y="276" width="22" height="30" rx="2" fill="#FBF3E7" transform="rotate(8 267 291)" className="illus-phone-glow" />
                   </g>
                 </svg>
 
