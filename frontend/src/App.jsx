@@ -7,6 +7,7 @@ import {
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts'
+import CurrentVisitIntake from './components/CurrentVisitIntake.jsx'
 
 const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:8000"
 
@@ -723,7 +724,7 @@ function App() {
     const hash = window.location.hash
     if (hash && hash.startsWith('#/')) {
       const parts = hash.substring(2).split('/')
-      const validAdminViews = ['overview', 'register', 'patients', 'patient-profile', 'records', 'emergency', 'settings']
+      const validAdminViews = ['overview', 'medikiosk', 'register', 'patients', 'patient-profile', 'records', 'emergency', 'settings']
       if (parts[0] === 'admin' && validAdminViews.includes(parts[1])) {
         return parts[1]
       }
@@ -848,11 +849,11 @@ function App() {
       setUserRole('admin')
       
       // Validate views for admin
-      const validAdminViews = ['overview', 'register', 'patients', 'patient-profile', 'records', 'emergency', 'settings', 'insurance']
+      const validAdminViews = ['overview', 'medikiosk', 'register', 'patients', 'patient-profile', 'records', 'emergency', 'settings', 'insurance']
       if (hashRole === 'admin' && validAdminViews.includes(hashView)) {
         initialView = hashView
         setAdminView(hashView)
-        if ((hashView === 'patient-profile' || hashView === 'insurance') && hashPatientId) {
+        if ((hashView === 'patient-profile' || hashView === 'insurance' || hashView === 'medikiosk') && hashPatientId) {
           initialPatientId = hashPatientId
           fetchPatientData(hashPatientId)
         }
@@ -866,7 +867,7 @@ function App() {
       setUserRole('patient')
       
       // Validate views for patient
-      const validPatientViews = ['overview', 'records', 'documents', 'insurance']
+      const validPatientViews = ['overview', 'current-intake', 'records', 'documents', 'insurance']
       if (hashRole === 'patient' && validPatientViews.includes(hashView)) {
         initialView = hashView
         setAdminView(hashView)
@@ -1910,6 +1911,12 @@ function App() {
               <Activity className="w-4 h-4" /> Dashboard / Overview
             </button>
             <button 
+              onClick={() => setAdminView('current-intake')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'current-intake' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+            >
+              <Clock className="w-4 h-4" /> Current Visit Intake
+            </button>
+            <button 
               onClick={() => setAdminView('records')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'records' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
             >
@@ -1946,7 +1953,7 @@ function App() {
           <header className="bg-white border-b border-slate-200 h-16 flex justify-between items-center px-8 shrink-0 z-40 shadow-sm">
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-slate-800 tracking-tight capitalize text-sm">
-                {adminView === 'overview' ? 'Personal E-Health Portal' : adminView === 'records' ? 'My Complete Health Records' : adminView === 'documents' ? 'Personal Documents' : 'My Health Insurance'}
+                {adminView === 'overview' ? 'Personal E-Health Portal' : adminView === 'current-intake' ? 'Current Visit Intake' : adminView === 'records' ? 'My Complete Health Records' : adminView === 'documents' ? 'Personal Documents' : 'My Health Insurance'}
               </span>
             </div>
 
@@ -2899,6 +2906,17 @@ function App() {
                     </div>
 
                   </div>
+                )}
+
+                {adminView === 'current-intake' && (
+                  <CurrentVisitIntake
+                    mode="patient"
+                    patient={activePatient}
+                    allPatients={allPatients}
+                    onSelectPatient={fetchPatientData}
+                    showToast={showToast}
+                    baseUrl={BASE_URL}
+                  />
                 )}
               </>
             ) : (
@@ -5475,6 +5493,12 @@ function App() {
             <Activity className="w-4 h-4" /> Overview / Dashboard
           </button>
           <button 
+            onClick={() => setAdminView('medikiosk')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'medikiosk' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+          >
+            <Clock className="w-4 h-4" /> MediKiosk Intake
+          </button>
+          <button 
             onClick={() => { setNewlyRegisteredPatient(null); setAdminView('register'); }}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'register' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
           >
@@ -5523,7 +5547,7 @@ function App() {
         <header className="bg-white border-b border-slate-200 h-16 flex justify-between items-center px-8 shrink-0 z-40">
           <div className="flex items-center gap-2">
             <span className="font-extrabold text-slate-800 tracking-tight capitalize text-sm">
-              {adminView === 'patient-profile' ? 'Patient Medical Brief Profile' : adminView === 'insurance' ? 'Patient Insurance Management' : `Hospital Admin Area: ${adminView}`}
+              {adminView === 'patient-profile' ? 'Patient Medical Brief Profile' : adminView === 'insurance' ? 'Patient Insurance Management' : adminView === 'medikiosk' ? 'Hospital MediKiosk Station' : `Hospital Admin Area: ${adminView}`}
             </span>
           </div>
 
@@ -5545,6 +5569,16 @@ function App() {
         {/* Scrollable Work Area */}
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
           {adminView === 'overview' && renderAdminOverview()}
+          {adminView === 'medikiosk' && (
+            <CurrentVisitIntake
+              mode="kiosk"
+              patient={activePatient}
+              allPatients={allPatients}
+              onSelectPatient={fetchPatientData}
+              showToast={showToast}
+              baseUrl={BASE_URL}
+            />
+          )}
           {adminView === 'register' && renderAdminRegister()}
           {adminView === 'patients' && renderAdminPatients()}
           {adminView === 'patient-profile' && renderAdminPatientProfile()}

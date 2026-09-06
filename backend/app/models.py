@@ -20,6 +20,7 @@ class Patient(Base):
     personal_documents = relationship("PersonalDocument", back_populates="patient", cascade="all, delete-orphan")
     scheduled_checkups = relationship("ScheduledCheckup", back_populates="patient", cascade="all, delete-orphan")
     clinical_contexts = relationship("ClinicalContext", back_populates="patient", cascade="all, delete-orphan")
+    visit_intakes = relationship("VisitIntake", back_populates="patient", cascade="all, delete-orphan")
 
 class Record(Base):
     __tablename__ = "records"
@@ -162,4 +163,30 @@ class ScheduledCheckup(Base):
     # Relationships
     patient = relationship("Patient", back_populates="scheduled_checkups")
     insurance_policy = relationship("InsurancePolicy", back_populates="scheduled_checkups")
+
+
+class VisitIntake(Base):
+    __tablename__ = "visit_intakes"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    patient_id = Column(String, ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
+    visit_datetime = Column(DateTime, default=datetime.utcnow, nullable=False)
+    patient_language = Column(String, default="en-IN") # e.g. "hi-IN", "kn-IN", "pa-IN", "en-IN"
+    raw_narration = Column(String, nullable=True) # Verbatim native speech transcript
+    translated_narration = Column(String, nullable=True) # Clear, non-hallucinatory clinical English
+    chief_complaints = Column(JSON, nullable=True) # Array of strings e.g. ["Severe headache", "Dizziness"]
+    symptom_duration = Column(String, nullable=True) # e.g. "3 days"
+    severity = Column(String, nullable=True) # e.g. "Mild", "Moderate", "Severe"
+    recent_changes = Column(String, nullable=True) # e.g. "Missed morning blood pressure tablet"
+    additional_notes = Column(String, nullable=True) # Specific notes patient wants doctor to know
+    structured_data = Column(JSON, nullable=True) # Full AI payload including adaptive followups
+    triage_priority = Column(String, default="routine") # "routine" or "priority_red_flag"
+    triage_flags = Column(JSON, nullable=True) # Array of triggered acute red-flag descriptions
+    source = Column(String, default="patient_app") # "patient_app" or "medikiosk"
+    verification_status = Column(String, default="Pending Doctor Review") # "Pending Doctor Review" or "Reviewed"
+    doctor_notes = Column(String, nullable=True) # Doctor's verification / clinical notes
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    patient = relationship("Patient", back_populates="visit_intakes")
 

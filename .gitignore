@@ -53,3 +53,18 @@ backend/uploads/supporting_claims/*
 *.log
 *.tmp
 *.temp
+
+# Presentation and personal review files (local use only)
+presentation_slides.html
+ayuseva_presentation_viewer.html
+presentation.html
+*.pdf
+
+# Markdown documentation (only README.md files stay on GitHub)
+*.md
+!README.md
+!**/README.md
+
+# Scratch directories and test artifacts
+scratch/
+backend/scratch/

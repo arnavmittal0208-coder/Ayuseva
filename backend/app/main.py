@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.database import engine, Base
 from app import models  # Force registration of models
-from app.routers import records, patients, claims, insurance, personal_documents
+from app.routers import records, patients, claims, insurance, personal_documents, visit_intakes
 
 # Auto-create database tables on startup
 Base.metadata.create_all(bind=engine)
@@ -43,6 +43,7 @@ app.include_router(patients.router)
 app.include_router(claims.router)
 app.include_router(insurance.router)
 app.include_router(personal_documents.router)
+app.include_router(visit_intakes.router)
 
 import asyncio
 from app.database import SessionLocal

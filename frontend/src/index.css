@@ -9,3 +9,45 @@
   --color-warning: #f59e0b;       /* Amber */
   --color-warning-light: #fffbeb;  /* Soft Amber */
 }
+
+@media screen {
+  .print-only-target {
+    display: none !important;
+  }
+}
+
+@media print {
+  /* Hide non-printable workspace and sidebars */
+  body * {
+    visibility: hidden !important;
+  }
+  
+  .print-only-target {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Show only printable current situation sheet */
+  .printable-current-situation,
+  .printable-current-situation * {
+    visibility: visible !important;
+  }
+  
+  .printable-current-situation {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 1.5rem !important;
+    background: white !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
