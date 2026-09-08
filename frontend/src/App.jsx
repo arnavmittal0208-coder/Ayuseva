@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { 
   Search, Shield, Activity, Calendar, FileText, Settings, AlertTriangle, 
   CheckCircle, Plus, Upload, Send, RefreshCw, BarChart2, User, Landmark, 
-  MapPin, PlusCircle, ArrowUpRight, Download, CheckCircle2, Clock, XCircle, LogOut, Trash2, Leaf
+  MapPin, PlusCircle, ArrowUpRight, Download, CheckCircle2, Clock, XCircle, LogOut, Trash2, Leaf, Heart
 } from 'lucide-react'
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -1775,24 +1775,24 @@ function App() {
   // Render Patient Portal layout
   if (userRole === 'patient') {
     return (
-      <div className="bg-slate-50 text-slate-800 font-sans min-h-screen flex">
+      <div className="bg-[#F2FBFA] text-[#071A2A] font-sans min-h-screen flex">
         {/* Persisted Sidebar for Patient */}
-        <nav className="bg-slate-900 text-slate-200 w-72 flex flex-col h-screen fixed left-0 top-0 py-6 px-4 border-r border-slate-800 z-50 animate-in fade-in slide-in-from-left duration-200">
+        <nav className="bg-[#0D3435] text-slate-200 w-72 flex flex-col h-screen fixed left-0 top-0 py-6 px-4 border-r border-[#15615D]/60 z-50 animate-in fade-in slide-in-from-left duration-200">
           <div className="mb-6 px-2 shrink-0">
             <div className="flex items-center gap-2">
-              <div className="bg-teal-500 p-1.5 rounded-lg text-slate-900 animate-pulse">
+              <div className="bg-[#08A99D] p-1.5 rounded-lg text-white">
                 <Shield className="w-6 h-6" />
               </div>
               <div>
                 <h1 className="font-bold text-base text-white leading-none">AyuSeva Portal</h1>
-                <p className="text-[10px] text-slate-450 mt-1 uppercase font-bold tracking-wider">Patient Personal Vault</p>
+                <p className="text-[10px] text-[#A0B3BD] mt-1 uppercase font-bold tracking-wider">Patient Personal Vault</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-850 px-3 py-2.5 rounded-xl border border-slate-750/60 mb-6 shrink-0 flex items-center gap-2 text-xs">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span className="text-slate-300 font-semibold truncate">
+          <div className="bg-[#0E3837] px-3 py-2.5 rounded-xl border border-[#15615D]/80 mb-6 shrink-0 flex items-center gap-2 text-xs">
+            <div className="w-2.5 h-2.5 rounded-full bg-[#2DD4BF] animate-pulse"></div>
+            <span className="text-white font-semibold truncate">
               Patient: {activePatient?.name || "Loading..."}
             </span>
           </div>
@@ -1801,41 +1801,41 @@ function App() {
           <div className="flex-1 overflow-y-auto space-y-1">
             <button 
               onClick={() => setAdminView('overview')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'overview' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'overview' ? 'bg-[#08A99D]/15 border border-[#08A99D]/30 text-white font-bold shadow-sm' : 'text-[#A0B3BD] hover:bg-white/5 hover:text-white border border-transparent'}`}
             >
-              <Activity className="w-4 h-4" /> Dashboard / Overview
+              <Activity className={`w-4 h-4 ${adminView === 'overview' ? 'text-[#08A99D]' : 'text-[#A0B3BD]'}`} /> Dashboard / Overview
             </button>
             <button 
               onClick={() => setAdminView('current-intake')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'current-intake' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'current-intake' ? 'bg-[#08A99D]/15 border border-[#08A99D]/30 text-white font-bold shadow-sm' : 'text-[#A0B3BD] hover:bg-white/5 hover:text-white border border-transparent'}`}
             >
-              <Clock className="w-4 h-4" /> Current Visit Intake
+              <Clock className={`w-4 h-4 ${adminView === 'current-intake' ? 'text-[#08A99D]' : 'text-[#A0B3BD]'}`} /> Current Visit Intake
             </button>
             <button 
               onClick={() => setAdminView('records')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'records' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'records' ? 'bg-[#08A99D]/15 border border-[#08A99D]/30 text-white font-bold shadow-sm' : 'text-[#A0B3BD] hover:bg-white/5 hover:text-white border border-transparent'}`}
             >
-              <FileText className="w-4 h-4" /> Health Records
+              <FileText className={`w-4 h-4 ${adminView === 'records' ? 'text-[#08A99D]' : 'text-[#A0B3BD]'}`} /> Health Records
             </button>
             <button 
               onClick={() => setAdminView('documents')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'documents' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'documents' ? 'bg-[#08A99D]/15 border border-[#08A99D]/30 text-white font-bold shadow-sm' : 'text-[#A0B3BD] hover:bg-white/5 hover:text-white border border-transparent'}`}
             >
-              <FileText className="w-4 h-4" /> Personal Documents
+              <FileText className={`w-4 h-4 ${adminView === 'documents' ? 'text-[#08A99D]' : 'text-[#A0B3BD]'}`} /> Personal Documents
             </button>
             <button 
               onClick={() => setAdminView('insurance')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'insurance' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'insurance' ? 'bg-[#08A99D]/15 border border-[#08A99D]/30 text-white font-bold shadow-sm' : 'text-[#A0B3BD] hover:bg-white/5 hover:text-white border border-transparent'}`}
             >
-              <Shield className="w-4 h-4" /> Insurance
+              <Shield className={`w-4 h-4 ${adminView === 'insurance' ? 'text-[#08A99D]' : 'text-[#A0B3BD]'}`} /> Insurance
             </button>
           </div>
 
           {/* Sidebar Footer Logout */}
-          <div className="mt-auto pt-4 border-t border-slate-800 shrink-0">
+          <div className="mt-auto pt-4 border-t border-white/10 shrink-0">
             <button 
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold hover:bg-rose-950/20 hover:text-rose-450 transition-all cursor-pointer text-left text-rose-500"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold hover:bg-rose-500/10 hover:text-rose-400 transition-all cursor-pointer text-left text-rose-400/90"
             >
               <LogOut className="w-4 h-4" /> Logout Session
             </button>
@@ -1843,25 +1843,24 @@ function App() {
         </nav>
 
         {/* Main Workspace for Patient */}
-        <main className="ml-72 flex-1 flex flex-col h-screen overflow-hidden">
+        <main className="ml-72 flex-1 flex flex-col h-screen overflow-hidden bg-[#F2FBFA]">
           {/* Top Header */}
-          <header className="bg-white border-b border-slate-200 h-16 flex justify-between items-center px-8 shrink-0 z-40 shadow-sm">
+          <header className="bg-white border-b border-[#DCE8E8] h-16 flex justify-between items-center px-8 shrink-0 z-40">
             <div className="flex items-center gap-2">
-              <span className="font-extrabold text-slate-800 tracking-tight capitalize text-sm">
+              <h1 className="font-bold text-[#071A2A] text-[17px] tracking-tight capitalize">
                 {adminView === 'overview' ? 'Personal E-Health Portal' : adminView === 'current-intake' ? 'Current Visit Intake' : adminView === 'records' ? 'My Complete Health Records' : adminView === 'documents' ? 'Personal Documents' : 'My Health Insurance'}
-              </span>
+              </h1>
             </div>
 
             <div className="flex items-center gap-4">
-              {loading && <RefreshCw className="w-4 h-4 text-teal-600 animate-spin" />}
-              <div className="w-[1px] h-5 bg-slate-200"></div>
+              {loading && <RefreshCw className="w-4 h-4 text-[#08A99D] animate-spin" />}
               {activePatient && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <p className="text-xs font-bold leading-tight text-slate-700">{activePatient.name}</p>
-                    <p className="text-[10px] text-slate-450 font-mono">UID: {activePatient.id}</p>
+                    <p className="text-xs font-bold leading-tight text-[#071A2A]">{activePatient.name}</p>
+                    <p className="text-[10.5px] text-[#71869A] font-mono mt-0.5">UID: {activePatient.id}</p>
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-slate-800 text-teal-400 flex items-center justify-center font-bold text-xs shadow-sm uppercase">
+                  <div className="w-8 h-8 rounded-full bg-[#08A99D] text-white flex items-center justify-center font-bold text-xs shadow-sm uppercase">
                     {activePatient.name ? activePatient.name.substring(0, 2) : "PT"}
                   </div>
                 </div>
@@ -1870,20 +1869,18 @@ function App() {
           </header>
 
           {/* Scrollable Work Area */}
-          <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+          <div className="flex-1 overflow-y-auto p-6 bg-[#F2FBFA]">
             {activePatient ? (
               <>
                 {adminView === 'overview' && (
                   <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-200">
                     {/* Patient Welcome Hero */}
-                    <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-md relative z-10 overflow-visible">
-                      <div className="absolute right-0 bottom-0 top-0 w-1/3 bg-gradient-to-l from-teal-500/20 to-transparent pointer-events-none rounded-r-2xl"></div>
-                      
+                    <div className="bg-[#15615D] text-white rounded-2xl p-6 shadow-sm border border-[#15615D] relative z-10 overflow-hidden">
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
                         <div>
-                          <span className="text-[10px] bg-teal-500/30 text-teal-300 font-bold tracking-wider px-2 py-0.5 rounded uppercase">Patient E-Health Portal</span>
+                          <span className="text-[10px] bg-[#0D3435]/60 text-[#99F6E4] border border-[#2DD4BF]/30 font-bold tracking-wider px-2 py-0.5 rounded uppercase">Patient E-Health Portal</span>
                           <h2 className="text-xl font-bold mt-2">Welcome Back, {activePatient.name || "AyuSeva User"}!</h2>
-                          <p className="text-xs text-slate-300 mt-1 max-w-md leading-relaxed">
+                          <p className="text-xs text-white/80 mt-1 max-w-md leading-relaxed">
                             Access your unified health timeline, track cashless claims, and view insurance checkup benefits.
                           </p>
                           {clinicalBrief && (
@@ -1891,7 +1888,7 @@ function App() {
                               <button 
                                 onClick={() => setShowSummarySelector(!showSummarySelector)}
                                 disabled={downloadingSummary}
-                                className="mt-4 flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md shrink-0 w-fit disabled:opacity-70 disabled:cursor-not-allowed"
+                                className="mt-4 flex items-center gap-2 bg-[#08A99D] hover:bg-[#079388] text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0 w-fit disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
                               >
                                 {downloadingSummary ? (
                                   <RefreshCw className="w-4.5 h-4.5 animate-spin" />
@@ -1902,12 +1899,12 @@ function App() {
                               </button>
 
                               {showSummarySelector && (
-                                <div className="absolute left-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl p-4 w-72 z-50 space-y-3 text-slate-800 animate-in fade-in slide-in-from-top-2 duration-150">
-                                  <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Choose Summary</span>
+                                <div className="absolute left-0 mt-2 bg-white border border-[#DCE8E8] rounded-xl shadow-xl p-4 w-72 z-50 space-y-3 text-[#071A2A] animate-in fade-in slide-in-from-top-2 duration-150">
+                                  <div className="flex justify-between items-center border-b border-[#DCE8E8] pb-1.5">
+                                    <span className="text-[10px] font-bold text-[#71869A] uppercase tracking-wider">Choose Summary</span>
                                     <button 
                                       onClick={() => setShowSummarySelector(false)}
-                                      className="text-slate-405 hover:text-slate-650 text-xs font-bold"
+                                      className="text-[#71869A] hover:text-[#071A2A] text-xs font-bold cursor-pointer"
                                     >
                                       ✕
                                     </button>
@@ -1916,31 +1913,31 @@ function App() {
                                     <button
                                       onClick={() => handleGenerateAndDownloadSummary('complete')}
                                       disabled={downloadingSummary}
-                                      className="w-full text-left bg-slate-50 hover:bg-slate-100 border border-slate-250 rounded-lg p-2 flex flex-col transition-all cursor-pointer disabled:opacity-50"
+                                      className="w-full text-left bg-[#F2FBFA] hover:bg-[#E6F7F4] border border-[#DCE8E8] rounded-lg p-2 flex flex-col transition-all cursor-pointer disabled:opacity-50"
                                     >
-                                      <span className="text-xs font-bold text-slate-700">Complete History</span>
-                                      <span className="text-[9px] text-slate-400 mt-0.5">Full health timeline summary</span>
+                                      <span className="text-xs font-bold text-[#071A2A]">Complete History</span>
+                                      <span className="text-[9px] text-[#71869A] mt-0.5">Full health timeline summary</span>
                                     </button>
                                     <button
                                       onClick={() => handleGenerateAndDownloadSummary('recent')}
                                       disabled={downloadingSummary}
-                                      className="w-full text-left bg-slate-50 hover:bg-slate-100 border border-slate-250 rounded-lg p-2 flex flex-col transition-all cursor-pointer disabled:opacity-50"
+                                      className="w-full text-left bg-[#F2FBFA] hover:bg-[#E6F7F4] border border-[#DCE8E8] rounded-lg p-2 flex flex-col transition-all cursor-pointer disabled:opacity-50"
                                     >
-                                      <span className="text-xs font-bold text-slate-700">Recent Updates</span>
-                                      <span className="text-[9px] text-slate-400 mt-0.5">Recent clinical changes & medication updates</span>
+                                      <span className="text-xs font-bold text-[#071A2A]">Recent Updates</span>
+                                      <span className="text-[9px] text-[#71869A] mt-0.5">Recent clinical changes & medication updates</span>
                                     </button>
                                     {clinicalContexts.length > 0 && (
-                                      <div className="border-t border-slate-100 pt-2 space-y-1.5">
-                                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">Conditions</span>
+                                      <div className="border-t border-[#DCE8E8] pt-2 space-y-1.5">
+                                        <span className="text-[8px] font-bold text-[#71869A] uppercase tracking-wider block">Conditions</span>
                                         {clinicalContexts.map(ctx => (
                                           <button
                                             key={ctx.id}
                                             onClick={() => handleGenerateAndDownloadSummary('disease', ctx.label)}
                                             disabled={downloadingSummary}
-                                            className="w-full text-left bg-slate-50 hover:bg-slate-100 border border-slate-250 rounded-lg p-2 flex flex-col transition-all cursor-pointer disabled:opacity-50"
+                                            className="w-full text-left bg-[#F2FBFA] hover:bg-[#E6F7F4] border border-[#DCE8E8] rounded-lg p-2 flex flex-col transition-all cursor-pointer disabled:opacity-50"
                                           >
-                                            <span className="text-xs font-bold text-teal-750">{ctx.label} Focus</span>
-                                            <span className="text-[9px] text-slate-400 mt-0.5">Longitudinal {ctx.label} summary</span>
+                                            <span className="text-xs font-bold text-[#08A99D]">{ctx.label} Focus</span>
+                                            <span className="text-[9px] text-[#71869A] mt-0.5">Longitudinal {ctx.label} summary</span>
                                           </button>
                                         ))}
                                       </div>
@@ -1953,21 +1950,21 @@ function App() {
                         </div>
 
                         {/* Coverage card info */}
-                        <div className="bg-slate-800/80 border border-slate-700 p-4 rounded-xl text-left shrink-0">
-                          <span className="text-[9px] uppercase font-bold tracking-wider text-slate-400">Active Insurance coverage</span>
-                          <p className="text-sm font-bold text-teal-400 mt-1">
+                        <div className="bg-[#0D3435]/70 border border-[#2DD4BF]/30 p-4 rounded-xl text-left shrink-0">
+                          <span className="text-[9px] uppercase font-bold tracking-wider text-[#99F6E4]">Active Insurance coverage</span>
+                          <p className="text-sm font-bold text-white mt-1">
                             {activePatient.policy_details?.insurer ? `${activePatient.policy_details.insurer} Policy` : "No Insurance Policy"}
                           </p>
                           <div className="flex items-center gap-6 mt-2 text-xs">
                             <div>
-                              <span className="text-[9px] text-slate-400 block">Coverage Limit</span>
-                              <span className="font-bold">
+                              <span className="text-[9px] text-white/70 block">Coverage Limit</span>
+                              <span className="font-bold text-[#99F6E4]">
                                 {activePatient.policy_details?.coverage_limit ? `₹${activePatient.policy_details.coverage_limit.toLocaleString()}` : "N/A"}
                               </span>
                             </div>
                             <div>
-                              <span className="text-[9px] text-slate-400 block">Policy Number</span>
-                              <span className="font-mono">{activePatient.policy_details?.policy_number || "N/A"}</span>
+                              <span className="text-[9px] text-white/70 block">Policy Number</span>
+                              <span className="font-mono text-white/90">{activePatient.policy_details?.policy_number || "N/A"}</span>
                             </div>
                           </div>
                         </div>
@@ -1978,17 +1975,17 @@ function App() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-350">
                       {/* Left: Trend Chart */}
                       {timeline.length > 0 && getAvailableTestNames().length > 0 ? (
-                        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                        <div className="bg-white border border-[#DCE8E8] rounded-xl p-5 shadow-sm flex flex-col justify-between">
                           <div className="flex justify-between items-center mb-4">
                             <div>
-                              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                                <BarChart2 className="w-4.5 h-4.5 text-slate-500" /> Vitals & Biomarker Trends
+                              <h3 className="text-sm font-bold text-[#071A2A] flex items-center gap-1.5">
+                                <BarChart2 className="w-4.5 h-4.5 text-[#08A99D]" /> Vitals & Biomarker Trends
                               </h3>
                             </div>
                             <select 
                               value={selectedChartTest}
                               onChange={(e) => setSelectedChartTest(e.target.value)}
-                              className="text-[11px] bg-slate-50 border border-slate-200 rounded px-2 py-1 focus:outline-none focus:border-teal-500 font-semibold text-slate-700"
+                              className="text-[11px] bg-[#F2FBFA] border border-[#DCE8E8] rounded px-2 py-1 focus:outline-none focus:border-[#08A99D] font-semibold text-[#071A2A]"
                             >
                               {getAvailableTestNames().map(name => (
                                 <option key={name} value={name}>{name}</option>
@@ -1999,15 +1996,15 @@ function App() {
                           <div className="h-48 w-full text-[10px] font-medium">
                             <ResponsiveContainer width="100%" height="100%">
                               <LineChart data={getBiomarkerChartData()} margin={{ top: 5, right: 15, left: -25, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                                <XAxis dataKey="date" stroke="#94a3b8" tickSize={4} />
-                                <YAxis stroke="#94a3b8" />
-                                <Tooltip contentStyle={{ fontSize: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="#EEF2F6" />
+                                <XAxis dataKey="date" stroke="#A0B3BD" tickSize={4} />
+                                <YAxis stroke="#A0B3BD" />
+                                <Tooltip contentStyle={{ fontSize: '10px', borderRadius: '8px', border: '1px solid #DCE8E8' }} />
                                 <Line 
                                   name={`${selectedChartTest}`}
                                   type="monotone" 
                                   dataKey="value" 
-                                  stroke="#0d9488" 
+                                  stroke="#08A99D" 
                                   strokeWidth={2.5} 
                                   dot={{ strokeWidth: 1.5, r: 3 }}
                                 />
@@ -2019,15 +2016,15 @@ function App() {
 
                       {/* Right: Recent Health Records */}
                       <div className={timeline.length > 0 && getAvailableTestNames().length > 0 ? "" : "lg:col-span-2"}>
-                        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm h-full flex flex-col justify-between">
+                        <div className="bg-white border border-[#DCE8E8] rounded-xl p-5 shadow-sm h-full flex flex-col justify-between">
                           <div>
-                            <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
-                              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                                <FileText className="w-4.5 h-4.5 text-slate-500" /> Recent Health Records
+                            <div className="flex justify-between items-center mb-4 border-b border-[#DCE8E8] pb-2">
+                              <h3 className="text-sm font-bold text-[#071A2A] flex items-center gap-1.5">
+                                <FileText className="w-4.5 h-4.5 text-[#08A99D]" /> Recent Health Records
                               </h3>
                               <button 
                                 onClick={() => setAdminView('records')}
-                                className="text-xs font-bold text-teal-600 hover:text-teal-700 cursor-pointer flex items-center gap-0.5"
+                                className="text-xs font-bold text-[#08A99D] hover:text-[#067a71] cursor-pointer flex items-center gap-0.5"
                               >
                                 View All →
                               </button>
@@ -2035,19 +2032,19 @@ function App() {
                             <div className="space-y-2">
                               {timeline.length > 0 ? (
                                 timeline.slice(0, 5).map(r => (
-                                  <div key={r.id} className="flex justify-between items-center gap-4 py-2 border-b border-slate-100 last:border-b-0 last:pb-0">
+                                  <div key={r.id} className="flex justify-between items-center gap-4 py-2 border-b border-[#DCE8E8] last:border-b-0 last:pb-0">
                                     <div className="flex items-center gap-3 min-w-0">
                                       <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 border ${
-                                        r.record_type === "Prescription" ? "bg-teal-50 border-teal-100 text-teal-700" :
-                                        r.record_type === "Lab Report" ? "bg-amber-50 border-amber-100 text-amber-700" : "bg-slate-100 border-slate-200 text-slate-700"
+                                        r.record_type === "Prescription" ? "bg-[#E6F7F4] border-[#99F6E4] text-[#08A99D]" :
+                                        r.record_type === "Lab Report" ? "bg-[#FFF7E6] border-[#FFE0A3] text-[#D97706]" : "bg-[#EEF2F6] border-[#DCE8E8] text-[#071A2A]"
                                       }`}>
                                         {r.record_type}
                                       </span>
                                       <div className="min-w-0">
-                                        <h4 className="text-xs font-semibold text-slate-700 truncate">
+                                        <h4 className="text-xs font-semibold text-[#071A2A] truncate">
                                           {r.parsed_json?.diagnoses?.join(", ") || r.parsed_json?.hospital_name || "Parsed Clinical Entry"}
                                         </h4>
-                                        <p className="text-[9px] text-slate-450 font-mono">Record ID: #{r.id} | Date: {formatToIndianDate(r.date) || "N/A"}</p>
+                                        <p className="text-[9px] text-[#71869A] font-mono">Record ID: #{r.id} | Date: {formatToIndianDate(r.date) || "N/A"}</p>
                                       </div>
                                     </div>
                                     <div className="flex shrink-0 gap-2">
@@ -2056,7 +2053,7 @@ function App() {
                                           href={getFileUrl(r.file_path)} 
                                           target="_blank" 
                                           rel="noreferrer"
-                                          className="border border-slate-250 hover:bg-slate-50 text-slate-600 px-2 py-1 rounded text-[10px] font-semibold flex items-center gap-1 shadow-sm transition-colors"
+                                          className="border border-[#DCE8E8] hover:bg-[#F2FBFA] text-[#071A2A] px-2 py-1 rounded text-[10px] font-semibold flex items-center gap-1 shadow-sm transition-colors"
                                         >
                                           <Download className="w-3 h-3" /> File
                                         </a>
@@ -2065,7 +2062,7 @@ function App() {
                                   </div>
                                 ))
                               ) : (
-                                <p className="text-xs text-slate-400 py-6 text-center">No documents present in health timeline.</p>
+                                <p className="text-xs text-[#71869A] py-6 text-center">No documents present in health timeline.</p>
                               )}
                             </div>
                           </div>
@@ -2077,15 +2074,15 @@ function App() {
 
                 {adminView === 'records' && (
                   <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-200">
-                    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                      <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+                    <div className="bg-white border border-[#DCE8E8] rounded-xl p-6 shadow-sm">
+                      <div className="flex justify-between items-center mb-4 border-b border-[#DCE8E8] pb-3">
                         <div>
-                          <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-teal-600" /> Complete Medical History
+                          <h3 className="text-base font-bold text-[#071A2A] flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-[#08A99D]" /> Complete Medical History
                           </h3>
-                          <p className="text-xs text-slate-400 mt-0.5">Unified health timeline containing all prescriptions, labs and clinical files</p>
+                          <p className="text-xs text-[#71869A] mt-0.5">Unified health timeline containing all prescriptions, labs and clinical files</p>
                         </div>
-                        <span className="text-xs bg-slate-100 text-slate-650 px-2.5 py-1 rounded-lg font-mono font-bold text-slate-600">
+                        <span className="text-xs bg-[#E6F7F4] text-[#08A99D] border border-[#99F6E4] px-2.5 py-1 rounded-lg font-mono font-bold">
                           Total: {timeline.length} Records
                         </span>
                       </div>
@@ -2094,23 +2091,23 @@ function App() {
                         {timeline.length > 0 ? (
                           <>
                             {/* Records List */}
-                            <div className="divide-y divide-slate-100">
+                            <div className="divide-y divide-[#DCE8E8]">
                               {timeline
                                 .slice((patientRecordsPage - 1) * 10, patientRecordsPage * 10)
                                 .map(r => (
                                   <div key={r.id} className="flex justify-between items-center gap-4 py-3 first:pt-0 last:pb-0">
                                     <div className="flex items-center gap-3.5 min-w-0">
                                       <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 border ${
-                                        r.record_type === "Prescription" ? "bg-teal-50 border-teal-100 text-teal-700" :
-                                        r.record_type === "Lab Report" ? "bg-amber-50 border-amber-100 text-amber-700" : "bg-slate-100 border-slate-200 text-slate-700"
+                                        r.record_type === "Prescription" ? "bg-[#E6F7F4] border-[#99F6E4] text-[#08A99D]" :
+                                        r.record_type === "Lab Report" ? "bg-[#FFF7E6] border-[#FFE0A3] text-[#D97706]" : "bg-[#EEF2F6] border-[#DCE8E8] text-[#071A2A]"
                                       }`}>
                                         {r.record_type}
                                       </span>
                                       <div className="min-w-0">
-                                        <h4 className="text-xs font-bold text-slate-800 truncate">
+                                        <h4 className="text-xs font-bold text-[#071A2A] truncate">
                                           {r.parsed_json?.diagnoses?.join(", ") || r.parsed_json?.hospital_name || "Parsed Clinical Entry"}
                                         </h4>
-                                        <p className="text-[10px] text-slate-400 mt-0.5 font-mono">Record ID: #{r.id} | Date: {formatToIndianDate(r.date) || "N/A"}</p>
+                                        <p className="text-[10px] text-[#71869A] mt-0.5 font-mono">Record ID: #{r.id} | Date: {formatToIndianDate(r.date) || "N/A"}</p>
                                       </div>
                                     </div>
                                     <div className="flex shrink-0 gap-2">
@@ -2119,7 +2116,7 @@ function App() {
                                           href={getFileUrl(r.file_path)} 
                                           target="_blank" 
                                           rel="noreferrer"
-                                          className="border border-slate-200 hover:bg-slate-50 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-sm transition-colors"
+                                          className="border border-[#DCE8E8] hover:bg-[#F2FBFA] text-[#071A2A] px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-sm transition-colors"
                                         >
                                           <Download className="w-3.5 h-3.5" /> View/Download File
                                         </a>
@@ -2131,21 +2128,21 @@ function App() {
 
                             {/* Pagination Controls */}
                             {timeline.length > 10 && (
-                              <div className="flex justify-between items-center border-t border-slate-100 pt-4 mt-4">
+                              <div className="flex justify-between items-center border-t border-[#DCE8E8] pt-4 mt-4">
                                 <button
                                   onClick={() => setPatientRecordsPage(p => Math.max(1, p - 1))}
                                   disabled={patientRecordsPage === 1}
-                                  className="border border-slate-200 hover:bg-slate-50 text-slate-750 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 transition-all cursor-pointer font-bold"
+                                  className="border border-[#DCE8E8] hover:bg-[#F2FBFA] text-[#071A2A] px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 transition-all cursor-pointer font-bold"
                                 >
                                   ← Previous
                                 </button>
-                                <span className="text-xs text-slate-500 font-medium">
+                                <span className="text-xs text-[#71869A] font-medium">
                                   Page {patientRecordsPage} of {Math.ceil(timeline.length / 10)}
                                 </span>
                                 <button
                                   onClick={() => setPatientRecordsPage(p => Math.min(Math.ceil(timeline.length / 10), p + 1))}
                                   disabled={patientRecordsPage >= Math.ceil(timeline.length / 10)}
-                                  className="border border-slate-200 hover:bg-slate-50 text-slate-750 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 transition-all cursor-pointer font-bold"
+                                  className="border border-[#DCE8E8] hover:bg-[#F2FBFA] text-[#071A2A] px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 transition-all cursor-pointer font-bold"
                                 >
                                   Next →
                                 </button>
@@ -2153,10 +2150,10 @@ function App() {
                             )}
                           </>
                         ) : (
-                          <div className="text-center py-10 bg-slate-50 border border-slate-200 rounded-xl">
-                            <FileText className="w-12 h-12 text-slate-350 mx-auto mb-2.5" />
-                            <h4 className="text-xs font-bold text-slate-800">No Health Records Available</h4>
-                            <p className="text-[11px] text-slate-405 text-slate-400 mt-1 max-w-xs mx-auto leading-normal">
+                          <div className="text-center py-10 bg-[#F2FBFA] border border-[#DCE8E8] rounded-xl">
+                            <FileText className="w-12 h-12 text-[#A0B3BD] mx-auto mb-2.5" />
+                            <h4 className="text-xs font-bold text-[#071A2A]">No Health Records Available</h4>
+                            <p className="text-[11px] text-[#71869A] mt-1 max-w-xs mx-auto leading-normal">
                               Your clinical files will appear here once they are generated or uploaded by hospital administrators.
                             </p>
                           </div>
@@ -2169,17 +2166,17 @@ function App() {
                 {adminView === 'documents' && (
                   <div className="max-w-7xl mx-auto space-y-4 animate-in fade-in duration-200">
                     {/* Vault Header Card */}
-                    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                      <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                    <div className="bg-white border border-[#DCE8E8] rounded-xl p-4 shadow-sm">
+                      <div className="flex justify-between items-center border-b border-[#DCE8E8] pb-3">
                         <div>
-                          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                            <FileText className="w-4.5 h-4.5 text-teal-650" /> Personal Documents Vault
+                          <h3 className="text-sm font-bold text-[#071A2A] flex items-center gap-2">
+                            <FileText className="w-4.5 h-4.5 text-[#08A99D]" /> Personal Documents Vault
                           </h3>
-                          <p className="text-[11px] text-slate-400 mt-0.5">
+                          <p className="text-[11px] text-[#71869A] mt-0.5">
                             A private secure space to store personal records. Completely isolated from hospital database logs and clinical contexts.
                           </p>
                         </div>
-                        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono font-bold">
+                        <span className="text-xs bg-[#E6F7F4] text-[#08A99D] border border-[#99F6E4] px-2.5 py-0.5 rounded font-mono font-bold">
                           {personalDocs.length} Personal Files
                         </span>
                       </div>
@@ -2187,10 +2184,10 @@ function App() {
                       {/* Storage + Upload Row */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                         {/* Left: Storage progress */}
-                        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col justify-center space-y-1.5">
+                        <div className="p-3 bg-[#F2FBFA] border border-[#DCE8E8] rounded-xl flex flex-col justify-center space-y-1.5">
                           <div className="flex justify-between text-[11px] font-bold">
-                            <span className="text-slate-500">Storage Capacity</span>
-                            <span className="text-slate-700">
+                            <span className="text-[#71869A]">Storage Capacity</span>
+                            <span className="text-[#071A2A]">
                               {(() => {
                                 const formatBytes = (b) => {
                                   if (b === 0) return '0 Bytes'
@@ -2203,10 +2200,10 @@ function App() {
                               })()}
                             </span>
                           </div>
-                          <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden border border-slate-250">
+                          <div className="w-full bg-[#DCE8E8] rounded-full h-2 overflow-hidden border border-[#DCE8E8]">
                             <div 
                               className={`h-full rounded-full transition-all duration-300 ${
-                                (personalDocsUsage / personalDocsLimit) > 0.9 ? 'bg-rose-500' : 'bg-teal-500'
+                                (personalDocsUsage / personalDocsLimit) > 0.9 ? 'bg-rose-500' : 'bg-[#08A99D]'
                               }`}
                               style={{ width: `${Math.min(100, (personalDocsUsage / personalDocsLimit) * 100)}%` }}
                             ></div>
@@ -2214,10 +2211,10 @@ function App() {
                         </div>
 
                         {/* Right: Upload Box */}
-                        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
+                        <div className="p-3 bg-[#F2FBFA] border border-[#DCE8E8] rounded-xl flex items-center justify-between gap-3">
                           <div className="min-w-0">
-                            <h4 className="text-[11px] font-bold text-slate-800">Upload Document</h4>
-                            <p className="text-[9px] text-slate-400 mt-0.5 truncate">PDF or Images up to 2 GB limit</p>
+                            <h4 className="text-[11px] font-bold text-[#071A2A]">Upload Document</h4>
+                            <p className="text-[9px] text-[#71869A] mt-0.5 truncate">PDF or Images up to 2 GB limit</p>
                           </div>
                           <div className="shrink-0">
                             <input 
@@ -2235,7 +2232,7 @@ function App() {
                             />
                             <label 
                               htmlFor="personal-doc-upload-input"
-                              className={`bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5 ${
+                              className={`bg-[#08A99D] hover:bg-[#079388] text-white px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5 ${
                                 (personalDocsUploading || personalDocsLoading) ? 'opacity-50 pointer-events-none' : ''
                               }`}
                             >
@@ -2263,14 +2260,14 @@ function App() {
                     </div>
 
                     {/* Files List Card */}
-                    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
-                      <h4 className="text-xs font-bold text-slate-800">My Personal Document Archives</h4>
+                    <div className="bg-white border border-[#DCE8E8] rounded-xl p-4 shadow-sm space-y-3">
+                      <h4 className="text-xs font-bold text-[#071A2A]">My Personal Document Archives</h4>
                       
                       {personalDocs.length > 0 ? (
-                        <div className="overflow-y-auto max-h-[300px] border border-slate-100 rounded-lg">
+                        <div className="overflow-y-auto max-h-[300px] border border-[#DCE8E8] rounded-lg">
                           <table className="w-full text-left border-collapse text-xs">
                             <thead>
-                              <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 font-bold text-[10px] uppercase sticky top-0 z-10">
+                              <tr className="border-b border-[#DCE8E8] bg-[#F2FBFA] text-[#71869A] font-bold text-[10px] uppercase sticky top-0 z-10">
                                 <th className="py-2 px-3">File Name</th>
                                 <th className="py-2 px-3">File Type</th>
                                 <th className="py-2 px-3">Size</th>
@@ -2278,16 +2275,16 @@ function App() {
                                 <th className="py-2 px-3 text-right">Actions</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-[#DCE8E8]">
                               {personalDocs.map(d => (
-                                <tr key={d.id} className="hover:bg-slate-50/50">
-                                  <td className="py-2 px-3 font-semibold text-slate-700 max-w-xs truncate" title={d.file_name}>
+                                <tr key={d.id} className="hover:bg-[#F2FBFA]/60">
+                                  <td className="py-2 px-3 font-semibold text-[#071A2A] max-w-xs truncate" title={d.file_name}>
                                     {d.file_name}
                                   </td>
-                                  <td className="py-2 px-3 text-slate-500 font-mono text-[10px] uppercase">
+                                  <td className="py-2 px-3 text-[#71869A] font-mono text-[10px] uppercase">
                                     {d.file_type ? d.file_type.split('/')[1] || d.file_type : 'UNKNOWN'}
                                   </td>
-                                  <td className="py-2 px-3 text-slate-500 font-mono">
+                                  <td className="py-2 px-3 text-[#71869A] font-mono">
                                     {(() => {
                                       const b = d.file_size
                                       if (b === 0) return '0 Bytes'
@@ -2297,7 +2294,7 @@ function App() {
                                       return parseFloat((b / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
                                     })()}
                                   </td>
-                                  <td className="py-2 px-3 text-slate-500">
+                                  <td className="py-2 px-3 text-[#71869A]">
                                     {new Date(d.created_at).toLocaleDateString('en-IN', {
                                       day: '2-digit',
                                       month: 'short',
@@ -2310,7 +2307,7 @@ function App() {
                                         href={getFileUrl(d.file_path)} 
                                         target="_blank" 
                                         rel="noreferrer"
-                                        className="border border-slate-200 hover:bg-slate-50 text-slate-600 px-2 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 shadow-sm transition-colors cursor-pointer"
+                                        className="border border-[#DCE8E8] hover:bg-[#F2FBFA] text-[#071A2A] px-2 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 shadow-sm transition-colors cursor-pointer"
                                       >
                                         <Download className="w-3 h-3" /> View / Download
                                       </a>
@@ -2329,10 +2326,10 @@ function App() {
                           </table>
                         </div>
                       ) : (
-                        <div className="text-center py-6 bg-slate-50 border border-slate-200 rounded-xl">
-                          <FileText className="w-8 h-8 text-slate-350 mx-auto mb-2 animate-pulse" />
-                          <h5 className="text-[11px] font-bold text-slate-800">Your Vault is Empty</h5>
-                          <p className="text-[10px] text-slate-400 mt-0.5 max-w-xs mx-auto leading-normal">
+                        <div className="text-center py-6 bg-[#F2FBFA] border border-[#DCE8E8] rounded-xl">
+                          <FileText className="w-8 h-8 text-[#A0B3BD] mx-auto mb-2 animate-pulse" />
+                          <h5 className="text-[11px] font-bold text-[#071A2A]">Your Vault is Empty</h5>
+                          <p className="text-[10px] text-[#71869A] mt-0.5 max-w-xs mx-auto leading-normal">
                             No personal files uploaded yet. Select files using the upload panel.
                           </p>
                         </div>
@@ -2345,11 +2342,11 @@ function App() {
                   <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-200">
                     {/* Top Alert/Status if no active policy */}
                     {!insuranceData?.active_policy && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 animate-bounce" />
+                      <div className="bg-[#FFF7E6] border border-[#FFE0A3] rounded-xl p-4 flex items-center gap-3">
+                        <AlertTriangle className="w-5 h-5 text-[#D97706] shrink-0 animate-bounce" />
                         <div>
-                          <h4 className="text-xs font-bold text-amber-800">No Active Insurance Policy Registered</h4>
-                          <p className="text-[10px] text-amber-700 mt-0.5">
+                          <h4 className="text-xs font-bold text-[#D97706]">No Active Insurance Policy Registered</h4>
+                          <p className="text-[10px] text-[#71869A] mt-0.5">
                             Please upload your health insurance policy document to enable cashless claim scaffolding and preventive wellness benefits.
                           </p>
                         </div>
@@ -2364,21 +2361,21 @@ function App() {
                         
                         {/* Policy Overview */}
                         {insuranceData?.active_policy ? (
-                          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4 relative overflow-hidden">
-                            <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-teal-650 bg-teal-600"></div>
+                          <div className="bg-white border border-[#DCE8E8] rounded-xl p-5 shadow-sm space-y-4 relative overflow-hidden">
+                            <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#08A99D]"></div>
                             
-                            <div className="flex justify-between items-start border-b border-slate-100 pb-3">
+                            <div className="flex justify-between items-start border-b border-[#DCE8E8] pb-3">
                               <div>
-                                <span className="text-[9px] bg-teal-50 text-teal-700 border border-teal-100 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Active Policy</span>
-                                <h3 className="text-base font-bold text-slate-800 mt-1">{insuranceData.active_policy.insurer}</h3>
-                                <p className="text-[10px] text-slate-400 mt-0.5">Policy Number: <span className="font-mono font-bold text-slate-600">{insuranceData.active_policy.policy_number}</span></p>
+                                <span className="text-[9px] bg-[#E6F7F4] text-[#08A99D] border border-[#99F6E4] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Active Policy</span>
+                                <h3 className="text-base font-bold text-[#071A2A] mt-1">{insuranceData.active_policy.insurer}</h3>
+                                <p className="text-[10px] text-[#71869A] mt-0.5">Policy Number: <span className="font-mono font-bold text-[#071A2A]">{insuranceData.active_policy.policy_number}</span></p>
                                 {insuranceData.active_policy.insurer_email && (
-                                  <p className="text-[10px] text-slate-400 mt-0.5">Contact Email: <span className="font-mono font-bold text-slate-600">{insuranceData.active_policy.insurer_email}</span></p>
+                                  <p className="text-[10px] text-[#71869A] mt-0.5">Contact Email: <span className="font-mono font-bold text-[#071A2A]">{insuranceData.active_policy.insurer_email}</span></p>
                                 )}
                               </div>
                               <div className="text-right">
-                                <span className="text-[9px] text-slate-450 uppercase font-bold tracking-wider block">Coverage Limit</span>
-                                <span className="text-lg font-extrabold text-teal-600">
+                                <span className="text-[9px] text-[#71869A] uppercase font-bold tracking-wider block">Coverage Limit</span>
+                                <span className="text-lg font-extrabold text-[#08A99D]">
                                   {insuranceData.active_policy.sum_insured ? `₹${insuranceData.active_policy.sum_insured.toLocaleString()}` : "N/A"}
                                 </span>
                               </div>
@@ -2387,83 +2384,83 @@ function App() {
                             {/* Details Grid */}
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
                               <div>
-                                <span className="text-[9px] text-slate-450 block font-semibold uppercase">Policyholder Name</span>
-                                <span className="font-semibold text-slate-700">{insuranceData.active_policy.policyholder_name || "N/A"}</span>
+                                <span className="text-[9px] text-[#71869A] block font-semibold uppercase">Policyholder Name</span>
+                                <span className="font-semibold text-[#071A2A]">{insuranceData.active_policy.policyholder_name || "N/A"}</span>
                               </div>
                               <div>
-                                <span className="text-[9px] text-slate-450 block font-semibold uppercase">Patient Member ID</span>
-                                <span className="font-semibold text-slate-700">{insuranceData.active_policy.member_id || "N/A"}</span>
+                                <span className="text-[9px] text-[#71869A] block font-semibold uppercase">Patient Member ID</span>
+                                <span className="font-semibold text-[#071A2A]">{insuranceData.active_policy.member_id || "N/A"}</span>
                               </div>
                               <div>
-                                <span className="text-[9px] text-slate-450 block font-semibold uppercase">Policy Type</span>
-                                <span className="font-semibold text-slate-700">{insuranceData.active_policy.policy_type || "N/A"}</span>
+                                <span className="text-[9px] text-[#71869A] block font-semibold uppercase">Policy Type</span>
+                                <span className="font-semibold text-[#071A2A]">{insuranceData.active_policy.policy_type || "N/A"}</span>
                               </div>
                               <div>
-                                <span className="text-[9px] text-slate-450 block font-semibold uppercase">Validity Period</span>
-                                <span className="font-semibold text-slate-700">
+                                <span className="text-[9px] text-[#71869A] block font-semibold uppercase">Validity Period</span>
+                                <span className="font-semibold text-[#071A2A]">
                                   {insuranceData.active_policy.start_date || "N/A"} to {insuranceData.active_policy.end_date || "N/A"}
                                 </span>
                               </div>
                               <div>
-                                <span className="text-[9px] text-slate-450 block font-semibold uppercase">Annual Premium</span>
-                                <span className="font-semibold text-slate-700">
+                                <span className="text-[9px] text-[#71869A] block font-semibold uppercase">Annual Premium</span>
+                                <span className="font-semibold text-[#071A2A]">
                                   {insuranceData.active_policy.premium ? `₹${insuranceData.active_policy.premium.toLocaleString()}` : "N/A"}
                                 </span>
                               </div>
                               <div>
-                                <span className="text-[9px] text-slate-450 block font-semibold uppercase">Wellness checkups</span>
-                                <span className="font-semibold text-slate-700">
+                                <span className="text-[9px] text-[#71869A] block font-semibold uppercase">Wellness checkups</span>
+                                <span className="font-semibold text-[#071A2A]">
                                   {insuranceData.active_policy.checkups_per_year !== null ? `${insuranceData.active_policy.checkups_per_year} Free/Year` : "N/A"}
                                 </span>
                               </div>
                             </div>
 
                             {/* Benefits & Limitations */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100 text-xs">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-[#DCE8E8] text-xs">
                               <div>
-                                <h4 className="text-[10px] font-bold text-slate-800 uppercase tracking-wide mb-1.5">Benefits Covered</h4>
+                                <h4 className="text-[10px] font-bold text-[#071A2A] uppercase tracking-wide mb-1.5">Benefits Covered</h4>
                                 {insuranceData.active_policy.benefits_coverage && insuranceData.active_policy.benefits_coverage.length > 0 ? (
-                                  <ul className="list-disc list-inside space-y-1 text-slate-600">
+                                  <ul className="list-disc list-inside space-y-1 text-[#71869A]">
                                     {insuranceData.active_policy.benefits_coverage.map((b, i) => (
                                       <li key={i} className="truncate">{b}</li>
                                     ))}
                                   </ul>
                                 ) : (
-                                  <p className="text-slate-400">No specific benefits listed.</p>
+                                  <p className="text-[#71869A]">No specific benefits listed.</p>
                                 )}
                               </div>
                               <div>
-                                <h4 className="text-[10px] font-bold text-slate-800 uppercase tracking-wide mb-1.5">Exclusions / Limitations</h4>
+                                <h4 className="text-[10px] font-bold text-[#071A2A] uppercase tracking-wide mb-1.5">Exclusions / Limitations</h4>
                                 {insuranceData.active_policy.conditions_limitations && insuranceData.active_policy.conditions_limitations.length > 0 ? (
-                                  <ul className="list-disc list-inside space-y-1 text-slate-600">
+                                  <ul className="list-disc list-inside space-y-1 text-[#71869A]">
                                     {insuranceData.active_policy.conditions_limitations.map((c, i) => (
                                       <li key={i} className="truncate">{c}</li>
                                     ))}
                                   </ul>
                                 ) : (
-                                  <p className="text-slate-400">No exclusions/co-pays listed.</p>
+                                  <p className="text-[#71869A]">No exclusions/co-pays listed.</p>
                                 )}
                               </div>
                             </div>
                           </div>
                         ) : (
-                          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center space-y-3 shadow-sm">
-                            <Shield className="w-12 h-12 text-slate-350 mx-auto animate-pulse" />
-                            <h3 className="text-base font-bold text-slate-800">No Insurance Registered</h3>
-                            <p className="text-xs text-slate-400 max-w-xs mx-auto leading-normal">
+                          <div className="bg-white border border-[#DCE8E8] rounded-xl p-8 text-center space-y-3 shadow-sm">
+                            <Shield className="w-12 h-12 text-[#A0B3BD] mx-auto animate-pulse" />
+                            <h3 className="text-base font-bold text-[#071A2A]">No Insurance Registered</h3>
+                            <p className="text-xs text-[#71869A] max-w-xs mx-auto leading-normal">
                               Upload your medical insurance card or policy PDF below. AyuSeva's AI engine will extract coverage data for cashless checkouts.
                             </p>
                           </div>
                         )}
 
                         {/* Left Column Part 2: Insurance Claims Portal */}
-                        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-                          <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                        <div className="bg-white border border-[#DCE8E8] rounded-xl p-5 shadow-sm space-y-4">
+                          <div className="flex justify-between items-center border-b border-[#DCE8E8] pb-3">
                             <div>
-                              <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                <FileText className="w-4 h-4 text-teal-600 shrink-0" /> Insurance Claims Portal
+                              <h4 className="text-xs font-bold text-[#071A2A] flex items-center gap-1.5">
+                                <FileText className="w-4 h-4 text-[#08A99D] shrink-0" /> Insurance Claims Portal
                               </h4>
-                              <p className="text-[10px] text-slate-400 mt-0.5">
+                              <p className="text-[10px] text-[#71869A] mt-0.5">
                                 Submit and monitor cashless pre-authorizations or reimbursement claims for hospital stays and clinical care.
                               </p>
                             </div>
@@ -2471,32 +2468,32 @@ function App() {
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Cashless Claims card */}
-                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
+                            <div className="bg-[#F2FBFA] border border-[#DCE8E8] rounded-xl p-4 space-y-3 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
                               <div className="space-y-1.5">
-                                <span className="text-[9px] bg-teal-50 text-teal-700 border border-teal-100 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Cashless Settlement</span>
-                                <h5 className="text-xs font-bold text-slate-850">Cashless Hospitalization Claims</h5>
-                                <p className="text-[10px] text-slate-450 leading-normal">
+                                <span className="text-[9px] bg-[#E6F7F4] text-[#08A99D] border border-[#99F6E4] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Cashless Settlement</span>
+                                <h5 className="text-xs font-bold text-[#071A2A]">Cashless Hospitalization Claims</h5>
+                                <p className="text-[10px] text-[#71869A] leading-normal">
                                   Direct cashless processing at network provider hospitals. Submit your discharge summary, doctor logs, and estimate sheets for instant AI pre-authorization approvals.
                                 </p>
                               </div>
-                              <div className="pt-2 border-t border-slate-200/60 flex justify-between items-center mt-auto">
-                                <span className="text-[9px] font-bold text-slate-400 font-mono uppercase">Status: Ready to Build</span>
-                                <span className="text-[9px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded font-bold uppercase font-mono">Coming Soon</span>
+                              <div className="pt-2 border-t border-[#DCE8E8] flex justify-between items-center mt-auto">
+                                <span className="text-[9px] font-bold text-[#71869A] font-mono uppercase">Status: Ready to Build</span>
+                                <span className="text-[9px] bg-[#EEF2F6] text-[#71869A] border border-[#DCE8E8] px-2 py-0.5 rounded font-bold uppercase font-mono">Coming Soon</span>
                               </div>
                             </div>
 
                             {/* Reimbursement Claims card */}
-                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
+                            <div className="bg-[#F2FBFA] border border-[#DCE8E8] rounded-xl p-4 space-y-3 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
                               <div className="space-y-1.5">
-                                <span className="text-[9px] bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Refund Claim</span>
-                                <h5 className="text-xs font-bold text-slate-850">Post-Treatment Reimbursement Claims</h5>
-                                <p className="text-[10px] text-slate-450 leading-normal">
+                                <span className="text-[9px] bg-[#EEF2F6] text-[#071A2A] border border-[#DCE8E8] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Refund Claim</span>
+                                <h5 className="text-xs font-bold text-[#071A2A]">Post-Treatment Reimbursement Claims</h5>
+                                <p className="text-[10px] text-[#71869A] leading-normal">
                                   Refund request for diagnostics, medication, and consultations. Upload scan receipts, doctor prescriptions, pharmacy bills, and claim forms.
                                 </p>
                               </div>
-                              <div className="pt-2 border-t border-slate-200/60 flex justify-between items-center mt-auto">
-                                <span className="text-[9px] font-bold text-slate-400 font-mono uppercase">Status: Ready to Build</span>
-                                <span className="text-[9px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded font-bold uppercase font-mono">Coming Soon</span>
+                              <div className="pt-2 border-t border-[#DCE8E8] flex justify-between items-center mt-auto">
+                                <span className="text-[9px] font-bold text-[#71869A] font-mono uppercase">Status: Ready to Build</span>
+                                <span className="text-[9px] bg-[#EEF2F6] text-[#71869A] border border-[#DCE8E8] px-2 py-0.5 rounded font-bold uppercase font-mono">Coming Soon</span>
                               </div>
                             </div>
                           </div>
@@ -2507,30 +2504,30 @@ function App() {
                       <div className="lg:col-span-4 space-y-6">
                         
                         {/* Manage Document Actions */}
-                        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-                          <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2">Policy Documents</h3>
+                        <div className="bg-white border border-[#DCE8E8] rounded-xl p-5 shadow-sm space-y-4">
+                          <h3 className="text-xs font-bold text-[#071A2A] uppercase tracking-wider border-b border-[#DCE8E8] pb-2">Policy Documents</h3>
                           
                           {/* File Preview Link */}
                           {insuranceData?.active_policy?.file_path ? (
-                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs space-y-3">
-                              <div className="flex items-center gap-2 text-slate-600">
-                                <FileText className="w-5 h-5 text-teal-600 shrink-0" />
+                            <div className="bg-[#F2FBFA] border border-[#DCE8E8] rounded-lg p-3 text-xs space-y-3">
+                              <div className="flex items-center gap-2 text-[#071A2A]">
+                                <FileText className="w-5 h-5 text-[#08A99D] shrink-0" />
                                 <div className="min-w-0">
-                                  <p className="font-semibold text-slate-700 truncate">Policy Document File</p>
-                                  <p className="text-[9px] text-slate-400 uppercase">PDF / Image Document</p>
+                                  <p className="font-semibold text-[#071A2A] truncate">Policy Document File</p>
+                                  <p className="text-[9px] text-[#71869A] uppercase">PDF / Image Document</p>
                                 </div>
                               </div>
                               <a 
                                 href={getFileUrl(insuranceData.active_policy.file_path)} 
                                 target="_blank" 
                                 rel="noreferrer"
-                                className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                                className="w-full bg-[#EEF2F6] hover:bg-[#DCE8E8] text-[#071A2A] py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
                               >
                                 <Download className="w-3.5 h-3.5" /> View / Download Document
                               </a>
                             </div>
                           ) : (
-                            <p className="text-[11px] text-slate-400 italic">No document file uploaded yet.</p>
+                            <p className="text-[11px] text-[#71869A] italic">No document file uploaded yet.</p>
                           )}
 
                           {/* Upload / Replace Action */}
@@ -2567,7 +2564,7 @@ function App() {
                             />
                             <label 
                               htmlFor="patient-insurance-upload-input"
-                              className={`w-full bg-teal-650 bg-teal-600 hover:bg-teal-700 text-white py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer ${
+                              className={`w-full bg-[#08A99D] hover:bg-[#079388] text-white py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer ${
                                 (insuranceUploading || loading) ? 'opacity-50 pointer-events-none' : ''
                               }`}
                             >
@@ -2585,7 +2582,7 @@ function App() {
 
                           {/* Remove Action */}
                           {insuranceData?.active_policy && (
-                            <div className="pt-2 border-t border-slate-100">
+                            <div className="pt-2 border-t border-[#DCE8E8]">
                               {archiveConfirmPolicyId === insuranceData.active_policy.id ? (
                                 <div className="bg-rose-50 border border-rose-100 rounded-lg p-3 space-y-2">
                                   <p className="text-[10px] text-rose-800 leading-normal font-semibold">
@@ -2615,7 +2612,7 @@ function App() {
                                     </button>
                                     <button 
                                       onClick={() => setArchiveConfirmPolicyId(null)}
-                                      className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-1.5 rounded text-[10px] font-bold transition-colors cursor-pointer"
+                                      className="flex-1 bg-[#EEF2F6] hover:bg-[#DCE8E8] text-[#071A2A] py-1.5 rounded text-[10px] font-bold transition-colors cursor-pointer"
                                     >
                                       Cancel
                                     </button>
@@ -2635,13 +2632,13 @@ function App() {
                         </div>
 
                         {/* Right Column Part 2: Preventive Care Benefits */}
-                        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
-                          <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <div className="bg-white border border-[#DCE8E8] rounded-xl p-4 shadow-sm space-y-3">
+                          <div className="flex justify-between items-center border-b border-[#DCE8E8] pb-2">
                             <div>
-                              <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                <Activity className="w-3.5 h-3.5 text-rose-500 shrink-0" /> Preventive Care Benefits
+                              <h4 className="text-xs font-bold text-[#071A2A] flex items-center gap-1.5">
+                                <Activity className="w-3.5 h-3.5 text-[#08A99D] shrink-0" /> Preventive Care Benefits
                               </h4>
-                              <p className="text-[10px] text-slate-400 mt-0.5">
+                              <p className="text-[10px] text-[#71869A] mt-0.5">
                                 Schedule your free annual health checkups covered by your active policy.
                               </p>
                             </div>
@@ -2651,19 +2648,19 @@ function App() {
                             <div className="space-y-3">
                               {/* Summary metrics grid */}
                               <div className="grid grid-cols-3 gap-2 text-center">
-                                <div className="py-1.5 px-1 bg-slate-50 border border-slate-150 rounded-lg">
-                                  <span className="text-[7.5px] text-slate-400 block font-bold uppercase tracking-wider">Total Entitled</span>
-                                  <span className="text-[11px] font-extrabold text-slate-700">{insuranceData.active_policy.checkups_per_year || 0} Checkups</span>
+                                <div className="py-1.5 px-1 bg-[#F2FBFA] border border-[#DCE8E8] rounded-lg">
+                                  <span className="text-[7.5px] text-[#71869A] block font-bold uppercase tracking-wider">Total Entitled</span>
+                                  <span className="text-[11px] font-extrabold text-[#071A2A]">{insuranceData.active_policy.checkups_per_year || 0} Checkups</span>
                                 </div>
-                                <div className="py-1.5 px-1 bg-rose-50/50 border border-rose-100/50 rounded-lg">
-                                  <span className="text-[7.5px] text-rose-500 block font-bold uppercase tracking-wider">Used (Locked)</span>
-                                  <span className="text-[11px] font-extrabold text-rose-600">
+                                <div className="py-1.5 px-1 bg-[#FFECEF] border border-[#FFCCD3] rounded-lg">
+                                  <span className="text-[7.5px] text-[#E11D48] block font-bold uppercase tracking-wider">Used (Locked)</span>
+                                  <span className="text-[11px] font-extrabold text-[#E11D48]">
                                     {checkups.filter(c => c.is_locked).length} Checkups
                                   </span>
                                 </div>
-                                <div className="py-1.5 px-1 bg-teal-50/50 border border-teal-100/50 rounded-lg">
-                                  <span className="text-[7.5px] text-teal-500 block font-bold uppercase tracking-wider">Remaining</span>
-                                  <span className="text-[11px] font-extrabold text-teal-600">
+                                <div className="py-1.5 px-1 bg-[#E6F7F4] border border-[#99F6E4] rounded-lg">
+                                  <span className="text-[7.5px] text-[#08A99D] block font-bold uppercase tracking-wider">Remaining</span>
+                                  <span className="text-[11px] font-extrabold text-[#08A99D]">
                                     {Math.max(0, (insuranceData.active_policy.checkups_per_year || 0) - checkups.filter(c => c.is_locked).length)} Slots
                                   </span>
                                 </div>
@@ -2679,15 +2676,15 @@ function App() {
                                     const isFailed = slot.status === "FAILED"
 
                                     return (
-                                      <div key={slot.checkup_number} className="bg-slate-50 border border-slate-200 rounded-lg py-2.5 px-3 flex flex-col justify-between gap-3">
+                                      <div key={slot.checkup_number} className="bg-[#F2FBFA] border border-[#DCE8E8] rounded-lg py-2.5 px-3 flex flex-col justify-between gap-3">
                                         <div className="space-y-0.5">
                                           <div className="flex items-center gap-1.5 flex-wrap">
-                                            <span className="text-[11px] font-bold text-slate-800">Checkup #{slot.checkup_number}</span>
-                                            <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                                              isSent ? 'bg-rose-100 text-rose-700 border border-rose-200' :
-                                              isFailed ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                                              isScheduled ? 'bg-teal-100 text-teal-700 border border-teal-200' :
-                                              'bg-slate-100 text-slate-500 border border-slate-200'
+                                            <span className="text-[11px] font-bold text-[#071A2A]">Checkup #{slot.checkup_number}</span>
+                                            <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold uppercase border ${
+                                              isSent ? 'bg-[#FFECEF] text-[#E11D48] border-[#FFCCD3]' :
+                                              isFailed ? 'bg-[#FFF7E6] text-[#D97706] border-[#FFE0A3]' :
+                                              isScheduled ? 'bg-[#E6F7F4] text-[#08A99D] border-[#99F6E4]' :
+                                              'bg-[#EEF2F6] text-[#71869A] border-[#DCE8E8]'
                                             }`}>
                                               {isSent ? "Notification Sent — Locked" : 
                                                isFailed ? "Notification Failed — Retry Pending" :
@@ -2697,18 +2694,18 @@ function App() {
                                           </div>
                                           
                                           {isAvailable && (
-                                            <p className="text-[9px] text-slate-400">Schedule your free wellness health checkup.</p>
+                                            <p className="text-[9px] text-[#71869A]">Schedule your free wellness health checkup.</p>
                                           )}
                                           
                                           {!isAvailable && (
                                             <div className="grid grid-cols-2 gap-x-3 text-[10px] mt-0.5">
                                               <div>
-                                                <span className="text-slate-400 block text-[8px] uppercase font-semibold">Appointment Date</span>
-                                                <span className="font-semibold text-slate-750">{slot.scheduled_date}</span>
+                                                <span className="text-[#71869A] block text-[8px] uppercase font-semibold">Appointment Date</span>
+                                                <span className="font-semibold text-[#071A2A]">{slot.scheduled_date}</span>
                                               </div>
                                               <div>
-                                                <span className="text-slate-400 block text-[8px] uppercase font-semibold">Notification Date</span>
-                                                <span className="font-semibold text-slate-750">{slot.notification_date}</span>
+                                                <span className="text-[#71869A] block text-[8px] uppercase font-semibold">Notification Date</span>
+                                                <span className="font-semibold text-[#071A2A]">{slot.notification_date}</span>
                                               </div>
                                             </div>
                                           )}
@@ -2718,10 +2715,10 @@ function App() {
                                           {isAvailable && (
                                             <div className="flex items-center gap-1.5 w-full">
                                               <input 
-                                                type="date"
+                                                type="date" 
                                                 id={`schedule-date-${slot.checkup_number}`}
                                                 min={new Date().toISOString().split('T')[0]}
-                                                className="bg-white border border-slate-200 rounded px-2 py-0.5 text-[11px] h-7 text-slate-750 focus:outline-none focus:ring-1 focus:ring-teal-500 w-full"
+                                                className="bg-white border border-[#DCE8E8] rounded px-2 py-0.5 text-[11px] h-7 text-[#071A2A] focus:outline-none focus:ring-1 focus:ring-[#08A99D] w-full"
                                               />
                                               <button
                                                 onClick={() => {
@@ -2732,7 +2729,7 @@ function App() {
                                                     alert("Please select a valid date first.");
                                                   }
                                                 }}
-                                                className="bg-teal-600 hover:bg-teal-700 text-white px-2.5 py-1 rounded-md text-[10px] font-semibold h-7 transition-all shadow-sm cursor-pointer"
+                                                className="bg-[#08A99D] hover:bg-[#079388] text-white px-2.5 py-1 rounded-md text-[10px] font-semibold h-7 transition-all shadow-sm cursor-pointer"
                                               >
                                                 Schedule
                                               </button>
@@ -2742,11 +2739,11 @@ function App() {
                                           {(isScheduled || isFailed) && (
                                             <div className="flex items-center gap-1.5 flex-wrap w-full">
                                               <input 
-                                                type="date"
+                                                type="date" 
                                                 id={`reschedule-date-${slot.checkup_number}`}
                                                 defaultValue={slot.scheduled_date}
                                                 min={new Date().toISOString().split('T')[0]}
-                                                className="bg-white border border-slate-200 rounded px-2 py-0.5 text-[11px] h-7 text-slate-750 focus:outline-none focus:ring-1 focus:ring-teal-500 w-full"
+                                                className="bg-white border border-[#DCE8E8] rounded px-2 py-0.5 text-[11px] h-7 text-[#071A2A] focus:outline-none focus:ring-1 focus:ring-[#08A99D] w-full"
                                               />
                                               <div className="flex gap-1.5 w-full">
                                                 <button
@@ -2756,13 +2753,13 @@ function App() {
                                                       scheduleCheckupSlot(slot.policy_id, slot.checkup_number, dateInput.value);
                                                     }
                                                   }}
-                                                  className="bg-slate-200 hover:bg-slate-350 text-slate-700 px-2.5 py-1 rounded-md text-[10px] font-semibold h-7 flex-1 transition-all shadow-sm cursor-pointer text-center text-ellipsis overflow-hidden whitespace-nowrap"
+                                                  className="bg-[#EEF2F6] hover:bg-[#DCE8E8] text-[#071A2A] px-2.5 py-1 rounded-md text-[10px] font-semibold h-7 flex-1 transition-all shadow-sm cursor-pointer text-center text-ellipsis overflow-hidden whitespace-nowrap"
                                                 >
                                                   Change
                                                 </button>
                                                 <button
                                                   onClick={() => simulateCheckupNotification(slot.id)}
-                                                  className="bg-slate-800 hover:bg-slate-700 text-white px-2.5 py-1 rounded-md text-[10px] font-semibold h-7 flex-1 transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1"
+                                                  className="bg-[#0D3435] hover:bg-[#15615D] text-white px-2.5 py-1 rounded-md text-[10px] font-semibold h-7 flex-1 transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1"
                                                   title="Preview simulated email template"
                                                 >
                                                   <Send className="w-2.5 h-2.5" /> [Dev] Preview
@@ -2778,8 +2775,8 @@ function App() {
                                           )}
 
                                           {isSent && (
-                                            <div className="text-[10px] text-slate-500 italic font-semibold flex items-center gap-1 p-0.5">
-                                              <CheckCircle2 className="w-3.5 h-3.5 text-teal-650 shrink-0" />
+                                            <div className="text-[10px] text-[#08A99D] italic font-semibold flex items-center gap-1 p-0.5">
+                                              <CheckCircle2 className="w-3.5 h-3.5 text-[#08A99D] shrink-0" />
                                               <span>Sent — Locked</span>
                                             </div>
                                           )}
@@ -2788,12 +2785,12 @@ function App() {
                                     )
                                   })
                                 ) : (
-                                  <p className="text-[10px] text-slate-455 italic">No checkup slots eligible under active policy.</p>
+                                  <p className="text-[10px] text-[#71869A] italic">No checkup slots eligible under active policy.</p>
                                 )}
                               </div>
                             </div>
                           ) : (
-                            <p className="text-[10px] text-slate-400 italic">No active insurance policy registered. Scheduling options will appear here once an insurance document is uploaded.</p>
+                            <p className="text-[10px] text-[#71869A] italic">No active insurance policy registered. Scheduling options will appear here once an insurance document is uploaded.</p>
                           )}
                         </div>
 
@@ -2816,10 +2813,10 @@ function App() {
                 )}
               </>
             ) : (
-              <div className="bg-white border border-slate-200 rounded-2xl p-12 shadow-sm text-center max-w-md mx-auto">
-                <RefreshCw className="w-12 h-12 text-slate-350 mx-auto mb-4 animate-spin" />
-                <h3 className="text-base font-bold text-slate-800">Synchronizing Vault Session</h3>
-                <p className="text-xs text-slate-405 text-slate-400 mt-1">Loading timeline history...</p>
+              <div className="bg-white border border-[#DCE8E8] rounded-2xl p-12 shadow-sm text-center max-w-md mx-auto">
+                <RefreshCw className="w-12 h-12 text-[#08A99D] mx-auto mb-4 animate-spin" />
+                <h3 className="text-base font-bold text-[#071A2A]">Synchronizing Vault Session</h3>
+                <p className="text-xs text-[#71869A] mt-1">Loading timeline history...</p>
               </div>
             )}
           </div>
@@ -2836,53 +2833,125 @@ function App() {
     return (
       <div className="space-y-3.5">
         {/* Welcome Section */}
-        <div className="bg-slate-900 text-white rounded-2xl py-3 px-5 shadow-md border border-slate-800 flex justify-between items-center relative overflow-hidden">
-          <div className="absolute right-0 bottom-0 top-0 w-1/4 bg-gradient-to-l from-teal-500/10 to-transparent pointer-events-none rounded-r-2xl"></div>
-          <div>
+        <div className="bg-[#15615D] text-white rounded-2xl py-3 px-5 shadow-sm border border-[#15615D] flex justify-between items-center relative overflow-hidden">
+          {/* Exact Decorative Concentric Arcs, Glowing Pulse, & Botanical Sprig */}
+          <svg className="absolute right-0 top-0 bottom-0 h-full w-[440px] pointer-events-none overflow-hidden" viewBox="0 0 440 80" fill="none">
+            <defs>
+              <filter id="heroPulseGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" />
+              </filter>
+            </defs>
+
+            {/* Faint corner arc at bottom-left */}
+            <circle cx="20" cy="85" r="55" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+
+            {/* Concentric Arc 1 (Outer Arc) */}
+            <path
+              d="M 90,85 C 130,20 220,-8 340,5 C 380,10 415,22 440,35"
+              stroke="rgba(255,255,255,0.12)"
+              strokeWidth="1"
+              fill="none"
+            />
+
+            {/* Concentric Arc 2 (Inner Arc Passing Through Leaf & Over Button) */}
+            <path
+              d="M 125,85 C 160,42 225,18 315,20 C 365,21 405,38 435,55"
+              stroke="rgba(255,255,255,0.16)"
+              strokeWidth="1"
+              fill="none"
+            />
+
+            {/* Glowing Pulse / Streak Along the Inner Arc */}
+            <path
+              d="M 192,43 C 203,38 215,34 227,31"
+              stroke="#2DD4BF"
+              strokeWidth="5"
+              strokeLinecap="round"
+              opacity="0.45"
+              filter="url(#heroPulseGlow)"
+              fill="none"
+            />
+            <path
+              d="M 194,42 C 203,38 214,34 225,31"
+              stroke="#99F6E4"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              opacity="0.85"
+              fill="none"
+            />
+            <path
+              d="M 197,41 C 205,37 213,34 221,32"
+              stroke="#FFFFFF"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              opacity="0.95"
+              fill="none"
+            />
+            {/* Illuminated Center Dot on the Arc */}
+            <circle cx="209" cy="36" r="5" fill="#2DD4BF" opacity="0.45" filter="url(#heroPulseGlow)" />
+            <circle cx="209" cy="36" r="1.6" fill="#FFFFFF" />
+
+            {/* Botanical 5-Leaflet Sprig */}
+            <g transform="translate(182, 39) rotate(22) scale(0.92)">
+              {/* Slender stem */}
+              <path d="M 0,10 L 0,-30" stroke="#2DD4BF" strokeWidth="1.2" strokeLinecap="round" opacity="0.65" />
+              {/* Lower Pair of Leaflets */}
+              <path d="M 0,0 C -3.5,-4 -4.2,-9 0,-14 C 4.2,-9 3.5,-4 0,0 Z" transform="translate(0, -3) rotate(-55)" fill="#2DD4BF" opacity="0.65" />
+              <path d="M 0,0 C -3.5,-4 -4.2,-9 0,-14 C 4.2,-9 3.5,-4 0,0 Z" transform="translate(0, -3) rotate(55)" fill="#2DD4BF" opacity="0.65" />
+              {/* Upper Pair of Leaflets */}
+              <path d="M 0,0 C -3.5,-4 -4.2,-9 0,-14 C 4.2,-9 3.5,-4 0,0 Z" transform="translate(0, -14) rotate(-46)" fill="#2DD4BF" opacity="0.72" />
+              <path d="M 0,0 C -3.5,-4 -4.2,-9 0,-14 C 4.2,-9 3.5,-4 0,0 Z" transform="translate(0, -14) rotate(46)" fill="#2DD4BF" opacity="0.72" />
+              {/* Terminal Tip Leaflet */}
+              <path d="M 0,0 C -3.2,-4 -3.8,-9.5 0,-15 C 3.8,-9.5 3.2,-4 0,0 Z" transform="translate(0, -28) rotate(2)" fill="#2DD4BF" opacity="0.82" />
+            </g>
+          </svg>
+
+          <div className="relative z-10">
             <h2 className="text-base font-bold text-white">Welcome, Admin User ({adminUsername})</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Manage intake, search clinic directories, and audit cashless insurance pre-authorizations.</p>
+            <p className="text-xs text-white/80 mt-0.5">Manage intake, search clinic directories, and audit cashless insurance pre-authorizations.</p>
           </div>
-          <div className="bg-teal-500/20 text-teal-300 text-xs font-mono font-bold px-3 py-1.5 rounded-lg border border-teal-500/30 flex items-center gap-1">
-            <Activity className="w-3.5 h-3.5" /> SQLite Active
+          <div className="relative z-10 bg-[#0E3837]/50 hover:bg-[#0E3837]/70 border border-[#2DD4BF]/40 text-white text-xs font-semibold px-4 py-1.5 rounded-full flex items-center gap-2 backdrop-blur-sm shadow-sm shrink-0 cursor-default">
+            <Activity className="w-3.5 h-3.5 text-[#2DD4BF]" /> 
+            <span className="font-bold text-white text-[13px] tracking-tight">SQLite Active</span>
           </div>
         </div>
 
         {/* Dashboard Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white border border-slate-200 p-2.5 px-3.5 rounded-xl shadow-sm flex items-center gap-3">
-            <div className="p-2 bg-teal-50 rounded-lg text-teal-650 shrink-0">
+          <div className="bg-white border border-[#DCE8E8] p-2.5 px-3.5 rounded-xl shadow-sm flex items-center gap-3">
+            <div className="p-2 bg-[#E6F7F4] rounded-lg text-[#08A99D] shrink-0">
               <User className="w-5.5 h-5.5" />
             </div>
             <div>
-              <span className="text-[9px] uppercase font-bold tracking-wider text-slate-400 block font-semibold">Total Patients</span>
-              <span className="text-xl font-bold text-slate-800 leading-none">{allPatients.length}</span>
+              <span className="text-[9px] uppercase font-bold tracking-wider text-[#A0B3BD] block font-semibold">Total Patients</span>
+              <span className="text-xl font-bold text-[#071A2A] leading-none">{allPatients.length}</span>
             </div>
           </div>
-          <div className="bg-white border border-slate-200 p-2.5 px-3.5 rounded-xl shadow-sm flex items-center gap-3">
-            <div className="p-2 bg-amber-50 rounded-lg text-amber-600 shrink-0">
+          <div className="bg-white border border-[#DCE8E8] p-2.5 px-3.5 rounded-xl shadow-sm flex items-center gap-3">
+            <div className="p-2 bg-[#FFF7E6] rounded-lg text-[#D97706] shrink-0">
               <FileText className="w-5.5 h-5.5" />
             </div>
             <div>
-              <span className="text-[9px] uppercase font-bold tracking-wider text-slate-400 block font-semibold">Total Records</span>
-              <span className="text-xl font-bold text-slate-800 leading-none">{globalRecords.length}</span>
+              <span className="text-[9px] uppercase font-bold tracking-wider text-[#A0B3BD] block font-semibold">Total Records</span>
+              <span className="text-xl font-bold text-[#071A2A] leading-none">{globalRecords.length}</span>
             </div>
           </div>
-          <div className="bg-white border border-slate-200 p-2.5 px-3.5 rounded-xl shadow-sm flex items-center gap-3">
-            <div className="p-2 bg-rose-50 rounded-lg text-rose-600 shrink-0">
-              <MapPin className="w-5.5 h-5.5" />
+          <div className="bg-white border border-[#DCE8E8] p-2.5 px-3.5 rounded-xl shadow-sm flex items-center gap-3">
+            <div className="p-2 bg-[#FFECEF] rounded-lg text-[#E02424] shrink-0">
+              <Heart className="w-5.5 h-5.5" />
             </div>
             <div>
-              <span className="text-[9px] uppercase font-bold tracking-wider text-slate-400 block font-semibold">Emergency Alerts</span>
-              <span className="text-xl font-bold text-slate-800 leading-none">3</span>
+              <span className="text-[9px] uppercase font-bold tracking-wider text-[#A0B3BD] block font-semibold">Emergency Alerts</span>
+              <span className="text-xl font-bold text-[#071A2A] leading-none">3</span>
             </div>
           </div>
-          <div className="bg-white border border-slate-200 p-2.5 px-3.5 rounded-xl shadow-sm flex items-center gap-3">
-            <div className="p-2 bg-teal-50 rounded-lg text-teal-655 shrink-0">
+          <div className="bg-white border border-[#DCE8E8] p-2.5 px-3.5 rounded-xl shadow-sm flex items-center gap-3">
+            <div className="p-2 bg-[#EEF2F6] rounded-lg text-[#6366F1] shrink-0">
               <Landmark className="w-5.5 h-5.5" />
             </div>
             <div>
-              <span className="text-[9px] uppercase font-bold tracking-wider text-slate-400 block font-semibold">Active Claims</span>
-              <span className="text-xl font-bold text-slate-800 leading-none">
+              <span className="text-[9px] uppercase font-bold tracking-wider text-[#A0B3BD] block font-semibold">Active Claims</span>
+              <span className="text-xl font-bold text-[#071A2A] leading-none">
                 {globalRecords.filter(r => r.parsed_json?.surgery_advised).length}
               </span>
             </div>
@@ -2891,36 +2960,42 @@ function App() {
 
         {/* Quick Actions Panel */}
         <div>
-          <h3 className="text-xs font-bold text-slate-800 mb-2 uppercase tracking-wider text-slate-505">Quick Actions</h3>
+          <h3 className="text-xs font-bold text-[#71869A] mb-2 uppercase tracking-wider">Quick Actions</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button 
               onClick={() => { setNewlyRegisteredPatient(null); setAdminView('register'); }}
-              className="bg-white border border-slate-200 hover:border-teal-500 p-3 rounded-xl shadow-sm hover:shadow transition-all text-left flex items-center gap-3.5 group cursor-pointer"
+              className="bg-white border border-[#DCE8E8] hover:border-[#08A99D] p-3 rounded-xl shadow-sm hover:shadow transition-all text-left flex items-center gap-3.5 group cursor-pointer"
             >
-              <PlusCircle className="w-8 h-8 text-teal-600 shrink-0 group-hover:scale-105 transition-transform" />
+              <div className="w-8 h-8 rounded-full border border-[#08A99D] flex items-center justify-center shrink-0 text-[#08A99D] group-hover:bg-[#E6F7F4] transition-colors">
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+              </div>
               <div>
-                <h4 className="font-bold text-slate-800 group-hover:text-teal-700 text-xs">Register New Patient</h4>
-                <p className="text-[10px] text-slate-400 mt-0.5 leading-normal">Generate local UIDs & log insurance details.</p>
+                <h4 className="font-bold text-[#071A2A] group-hover:text-[#08A99D] text-xs">Register New Patient</h4>
+                <p className="text-[10px] text-[#71869A] mt-0.5 leading-normal">Generate local UIDs & log insurance details.</p>
               </div>
             </button>
             <button 
               onClick={() => setAdminView('patients')}
-              className="bg-white border border-slate-200 hover:border-teal-500 p-3 rounded-xl shadow-sm hover:shadow transition-all text-left flex items-center gap-3.5 group cursor-pointer"
+              className="bg-white border border-[#DCE8E8] hover:border-[#08A99D] p-3 rounded-xl shadow-sm hover:shadow transition-all text-left flex items-center gap-3.5 group cursor-pointer"
             >
-              <Search className="w-8 h-8 text-teal-600 shrink-0 group-hover:scale-105 transition-transform" />
+              <div className="w-8 h-8 rounded-full border border-[#08A99D] flex items-center justify-center shrink-0 text-[#08A99D] group-hover:bg-[#E6F7F4] transition-colors">
+                <Search className="w-4 h-4 stroke-[2.5]" />
+              </div>
               <div>
-                <h4 className="font-bold text-slate-800 group-hover:text-teal-700 text-xs">Search Patient File</h4>
-                <p className="text-[10px] text-slate-400 mt-0.5 leading-normal">Find patient profiles by name or UID.</p>
+                <h4 className="font-bold text-[#071A2A] group-hover:text-[#08A99D] text-xs">Search Patient File</h4>
+                <p className="text-[10px] text-[#71869A] mt-0.5 leading-normal">Find patient profiles by name or UID.</p>
               </div>
             </button>
             <button 
               onClick={() => setAdminView('emergency')}
-              className="bg-white border border-slate-200 hover:border-teal-500 p-3 rounded-xl shadow-sm hover:shadow transition-all text-left flex items-center gap-3.5 group cursor-pointer"
+              className="bg-white border border-[#DCE8E8] hover:border-[#E02424] p-3 rounded-xl shadow-sm hover:shadow transition-all text-left flex items-center gap-3.5 group cursor-pointer"
             >
-              <MapPin className="w-8 h-8 text-rose-600 shrink-0 group-hover:scale-105 transition-transform" />
+              <div className="w-8 h-8 rounded-full border border-[#E02424] flex items-center justify-center shrink-0 text-[#E02424] group-hover:bg-[#FFECEF] transition-colors">
+                <Heart className="w-4 h-4 stroke-[2.5]" />
+              </div>
               <div>
-                <h4 className="font-bold text-slate-800 group-hover:text-rose-700 text-xs">Emergency Transfer Alerts</h4>
-                <p className="text-[10px] text-slate-400 mt-0.5 leading-normal">Dispatch records to trauma centers.</p>
+                <h4 className="font-bold text-[#071A2A] group-hover:text-[#E02424] text-xs">Emergency Transfer Alerts</h4>
+                <p className="text-[10px] text-[#71869A] mt-0.5 leading-normal">Dispatch records to trauma centers.</p>
               </div>
             </button>
           </div>
@@ -2929,22 +3004,22 @@ function App() {
         {/* Recent Registered Patients & Latest Activities */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Recent Patients */}
-          <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center justify-between">
+          <div className="bg-white border border-[#DCE8E8] rounded-xl p-3.5 shadow-sm">
+            <h3 className="text-sm font-bold text-[#071A2A] mb-3 flex items-center justify-between">
               <span>Recently Registered Patients</span>
-              <button onClick={() => setAdminView('patients')} className="text-xs text-teal-600 font-bold hover:underline cursor-pointer">View All</button>
+              <button onClick={() => setAdminView('patients')} className="text-xs text-[#08A99D] font-bold hover:underline cursor-pointer">View All</button>
             </h3>
             {recentPatients.length > 0 ? (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-[#DCE8E8]/60">
                 {recentPatients.map(p => (
                   <div key={p.id} className="py-2.5 flex justify-between items-center first:pt-0 last:pb-0">
                     <div>
-                      <h4 className="text-xs font-bold text-slate-800">{p.name || 'Unnamed Patient'}</h4>
-                      <span className="text-[10px] text-slate-400 mt-0.5 block font-mono">{p.id}</span>
+                      <h4 className="text-xs font-bold text-[#071A2A]">{p.name || 'Unnamed Patient'}</h4>
+                      <span className="text-[10px] text-[#71869A] mt-0.5 block font-mono">{p.id}</span>
                     </div>
                     <button 
                       onClick={() => { fetchPatientData(p.id); setAdminView('patient-profile'); }}
-                      className="border border-slate-200 hover:bg-slate-50 text-slate-700 hover:text-slate-900 px-3 py-1 rounded text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+                      className="border border-[#DCE8E8] hover:bg-[#F2FBFA] text-[#071A2A] px-3 py-1 rounded text-xs font-semibold shadow-sm transition-colors cursor-pointer"
                     >
                       Open File
                     </button>
@@ -2952,37 +3027,37 @@ function App() {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-400 py-6 text-center">No patients registered in database yet.</p>
+              <p className="text-xs text-[#A0B3BD] py-6 text-center">No patients registered in database yet.</p>
             )}
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center justify-between">
+          <div className="bg-white border border-[#DCE8E8] rounded-xl p-3.5 shadow-sm">
+            <h3 className="text-sm font-bold text-[#071A2A] mb-3 flex items-center justify-between">
               <span>Latest Medical Activity</span>
-              <button onClick={() => setAdminView('records')} className="text-xs text-teal-600 font-bold hover:underline cursor-pointer">View Feed</button>
+              <button onClick={() => setAdminView('records')} className="text-xs text-[#08A99D] font-bold hover:underline cursor-pointer">View Feed</button>
             </h3>
             {recentActivity.length > 0 ? (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-[#DCE8E8]/60">
                 {recentActivity.map(r => (
                   <div key={r.id} className="py-2.5 first:pt-0 last:pb-0">
                     <div className="flex justify-between items-start">
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
-                        r.record_type === 'Prescription' ? 'bg-teal-50 border-teal-100 text-teal-700' :
-                        r.record_type === 'Lab Report' ? 'bg-amber-50 border-amber-100 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-600'
+                        r.record_type === 'Prescription' ? 'bg-[#E6F7F4] border-[#E6F7F4] text-[#08A99D]' :
+                        r.record_type === 'Lab Report' ? 'bg-[#FFF7E6] border-[#FFF7E6] text-[#D97706]' : 'bg-[#F2FBFA] border-[#DCE8E8] text-[#71869A]'
                       }`}>
                         {r.record_type}
                       </span>
-                      <span className="text-[9px] text-slate-400 font-mono">{formatToIndianDate(r.date) || 'N/A'}</span>
+                      <span className="text-[9px] text-[#71869A] font-mono">{formatToIndianDate(r.date) || 'N/A'}</span>
                     </div>
-                    <p className="text-xs font-bold text-slate-800 mt-1">
-                      Uploaded file for {r.patient_name} <span className="font-mono text-[10px] text-slate-400 font-normal">({r.patient_id})</span>
+                    <p className="text-xs font-bold text-[#071A2A] mt-1">
+                      Uploaded file for {r.patient_name} <span className="font-mono text-[10px] text-[#71869A] font-normal">({r.patient_id})</span>
                     </p>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-400 py-6 text-center">No records uploaded yet.</p>
+              <p className="text-xs text-[#A0B3BD] py-6 text-center">No records uploaded yet.</p>
             )}
           </div>
         </div>
@@ -5360,102 +5435,158 @@ function App() {
 
   // Main Render for Hospital Admin
   return (
-    <div className="bg-slate-50 text-slate-800 font-sans min-h-screen flex">
+    <div className="bg-[#F2FBFA] text-[#071A2A] font-sans min-h-screen flex">
       {/* Persisted Sidebar */}
-      <nav className="bg-slate-900 text-slate-200 w-72 flex flex-col h-screen fixed left-0 top-0 py-6 px-4 border-r border-slate-800 z-50">
+      <nav className="bg-gradient-to-b from-[#0D3435] to-[#0E3837] text-[#A0B3BD] w-72 flex flex-col h-screen fixed left-0 top-0 py-6 px-4 border-r border-[#0D3435] z-50 select-none">
         <div className="mb-6 px-2 shrink-0">
           <div className="flex items-center gap-2">
-            <div className="bg-teal-500 p-1.5 rounded-lg text-slate-900">
-              <Shield className="w-6 h-6" />
+            <div className="border border-[#08A99D]/30 bg-[#08A99D]/10 p-1.5 rounded-lg text-[#08A99D] shrink-0">
+              <Shield className="w-5 h-5" />
             </div>
             <div>
               <h1 className="font-bold text-base text-white leading-none">AyuSeva Console</h1>
-              <p className="text-[10px] text-slate-450 mt-1 uppercase font-bold tracking-wider">Hospital Desk Admin</p>
+              <p className="text-[10px] text-[#71869A] mt-1 uppercase font-bold tracking-wider">Hospital Desk Admin</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-slate-800/80 px-3 py-2.5 rounded-xl border border-slate-700/60 mb-6 shrink-0 flex items-center gap-2 text-xs">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-          <span className="text-slate-300 font-semibold truncate">Session ID: {adminUsername}</span>
+        <div className="bg-white/5 border border-white/10 px-3 py-2.5 rounded-xl mb-6 shrink-0 flex items-center gap-2 text-xs">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#08A99D] animate-pulse"></div>
+          <span className="text-white/80 font-semibold truncate text-xs">Session ID: {adminUsername}</span>
         </div>
 
         {/* Sidebar Nav Items */}
-        <div className="flex-1 overflow-y-auto space-y-1">
+        <div className="flex-1 overflow-y-auto space-y-1 relative z-10">
           <button 
             onClick={() => setAdminView('overview')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'overview' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'overview' ? 'bg-[#08A99D]/15 border border-[#08A99D]/30 text-white font-bold shadow-sm' : 'text-[#A0B3BD] hover:bg-white/5 hover:text-white border border-transparent'}`}
           >
-            <Activity className="w-4 h-4" /> Overview / Dashboard
+            <Activity className={`w-4 h-4 ${adminView === 'overview' ? 'text-[#08A99D]' : 'text-[#A0B3BD]'}`} /> Overview / Dashboard
           </button>
           <button 
             onClick={() => setAdminView('patients')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'patients' || adminView === 'patient-profile' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'patients' || adminView === 'patient-profile' ? 'bg-[#08A99D]/15 border border-[#08A99D]/30 text-white font-bold shadow-sm' : 'text-[#A0B3BD] hover:bg-white/5 hover:text-white border border-transparent'}`}
           >
-            <User className="w-4 h-4" /> Patients Directory
+            <User className={`w-4 h-4 ${adminView === 'patients' || adminView === 'patient-profile' ? 'text-[#08A99D]' : 'text-[#A0B3BD]'}`} /> Patients Directory
           </button>
           <button 
             onClick={() => setAdminView('records')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'records' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'records' ? 'bg-[#08A99D]/15 border border-[#08A99D]/30 text-white font-bold shadow-sm' : 'text-[#A0B3BD] hover:bg-white/5 hover:text-white border border-transparent'}`}
           >
-            <FileText className="w-4 h-4" /> Medical Records Feed
+            <FileText className={`w-4 h-4 ${adminView === 'records' ? 'text-[#08A99D]' : 'text-[#A0B3BD]'}`} /> Medical Records Feed
           </button>
           <button 
             onClick={() => setAdminView('medikiosk')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'medikiosk' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'medikiosk' ? 'bg-[#08A99D]/15 border border-[#08A99D]/30 text-white font-bold shadow-sm' : 'text-[#A0B3BD] hover:bg-white/5 hover:text-white border border-transparent'}`}
           >
-            <Clock className="w-4 h-4" /> MediKiosk Intake
+            <Clock className={`w-4 h-4 ${adminView === 'medikiosk' ? 'text-[#08A99D]' : 'text-[#A0B3BD]'}`} /> MediKiosk Intake
           </button>
           <button 
             onClick={() => setAdminView('ayush')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'ayush' ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'ayush' ? 'bg-[#08A99D]/15 border border-[#08A99D]/30 text-white font-bold shadow-sm' : 'text-[#A0B3BD] hover:bg-white/5 hover:text-white border border-transparent'}`}
           >
-            <Leaf className="w-4 h-4 text-emerald-400" /> AYUSH Assessment
+            <Leaf className={`w-4 h-4 ${adminView === 'ayush' ? 'text-[#08A99D]' : 'text-[#A0B3BD]'}`} /> AYUSH Assessment
           </button>
           <button 
             onClick={() => setAdminView('emergency')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'emergency' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'emergency' ? 'bg-[#08A99D]/15 border border-[#08A99D]/30 text-white font-bold shadow-sm' : 'text-[#A0B3BD] hover:bg-white/5 hover:text-white border border-transparent'}`}
           >
-            <MapPin className="w-4 h-4" /> Emergency Referral
+            <MapPin className={`w-4 h-4 ${adminView === 'emergency' ? 'text-[#08A99D]' : 'text-[#A0B3BD]'}`} /> Emergency Referral
           </button>
           <button 
             onClick={() => setAdminView('settings')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'settings' ? 'bg-teal-950/60 border border-teal-500/30 text-teal-400 font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100 border border-transparent'}`}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${adminView === 'settings' ? 'bg-[#08A99D]/15 border border-[#08A99D]/30 text-white font-bold shadow-sm' : 'text-[#A0B3BD] hover:bg-white/5 hover:text-white border border-transparent'}`}
           >
-            <Settings className="w-4 h-4" /> Settings
+            <Settings className={`w-4 h-4 ${adminView === 'settings' ? 'text-[#08A99D]' : 'text-[#A0B3BD]'}`} /> Settings
           </button>
         </div>
 
-        {/* Sidebar Footer Logout */}
-        <div className="mt-auto pt-4 border-t border-slate-800 shrink-0">
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold hover:bg-rose-950/20 hover:text-rose-400 transition-all cursor-pointer text-left text-rose-500"
-          >
-            <LogOut className="w-4 h-4" /> Logout
-          </button>
+        {/* Sidebar Bottom Decoration & Branding */}
+        <div className="mt-auto pt-4 relative shrink-0 overflow-hidden">
+          {/* Completed Semicircles & Subdued Botanical Sprig */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden" viewBox="0 0 256 120" fill="none">
+            <defs>
+              <filter id="sidebarPulseGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="2" />
+              </filter>
+            </defs>
+
+            {/* Complete Semicircular Concentric Arcs Radiating Across the Sidebar */}
+            <circle cx="10" cy="125" r="65" stroke="rgba(8, 169, 157, 0.16)" strokeWidth="1" fill="none" />
+            <circle cx="10" cy="125" r="105" stroke="rgba(8, 169, 157, 0.20)" strokeWidth="1" fill="none" />
+            <circle cx="10" cy="125" r="150" stroke="rgba(8, 169, 157, 0.22)" strokeWidth="1" fill="none" />
+            <circle cx="10" cy="125" r="195" stroke="rgba(8, 169, 157, 0.15)" strokeWidth="1" fill="none" />
+            <circle cx="10" cy="125" r="240" stroke="rgba(8, 169, 157, 0.08)" strokeWidth="1" fill="none" />
+
+            {/* Subtle Glowing Pulse Along the Arc */}
+            <path
+              d="M 140,53 C 148,59 157,66 166,73"
+              stroke="#2DD4BF"
+              strokeWidth="4"
+              strokeLinecap="round"
+              opacity="0.22"
+              filter="url(#sidebarPulseGlow)"
+              fill="none"
+            />
+            <path
+              d="M 143,55 C 150,61 158,67 164,72"
+              stroke="#99F6E4"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              opacity="0.38"
+              fill="none"
+            />
+            <circle cx="154" cy="64" r="3.5" fill="#2DD4BF" opacity="0.25" filter="url(#sidebarPulseGlow)" />
+            <circle cx="154" cy="64" r="1.4" fill="#FFFFFF" opacity="0.6" />
+
+            {/* Botanical 5-Leaflet Sprig (Same position, size, shape, color; reduced opacity for subtlety) */}
+            <g transform="translate(154, 64) rotate(35) scale(0.92)" opacity="0.28">
+              {/* Slender stem */}
+              <path d="M 0,8 L 0,-28" stroke="#2DD4BF" strokeWidth="1.2" strokeLinecap="round" opacity="0.7" />
+              {/* Lower Pair of Leaflets */}
+              <path d="M 0,0 C -3.5,-4 -4.2,-9 0,-14 C 4.2,-9 3.5,-4 0,0 Z" transform="translate(0, -3) rotate(-55)" fill="#2DD4BF" opacity="0.8" />
+              <path d="M 0,0 C -3.5,-4 -4.2,-9 0,-14 C 4.2,-9 3.5,-4 0,0 Z" transform="translate(0, -3) rotate(55)" fill="#2DD4BF" opacity="0.8" />
+              {/* Upper Pair of Leaflets */}
+              <path d="M 0,0 C -3.5,-4 -4.2,-9 0,-14 C 4.2,-9 3.5,-4 0,0 Z" transform="translate(0, -13) rotate(-46)" fill="#2DD4BF" opacity="0.85" />
+              <path d="M 0,0 C -3.5,-4 -4.2,-9 0,-14 C 4.2,-9 3.5,-4 0,0 Z" transform="translate(0, -13) rotate(46)" fill="#2DD4BF" opacity="0.85" />
+              {/* Terminal Tip Leaflet */}
+              <path d="M 0,0 C -3.2,-4 -3.8,-9.5 0,-15 C 3.8,-9.5 3.2,-4 0,0 Z" transform="translate(0, -26) rotate(2)" fill="#2DD4BF" opacity="0.9" />
+            </g>
+          </svg>
+
+          <div className="relative z-10 mb-3 px-2">
+            <p className="text-[11px] text-[#71869A] font-medium leading-tight">Connected Care</p>
+            <p className="text-[11px] text-[#71869A] font-medium leading-tight">for a Healthier Tomorrow</p>
+          </div>
+          <div className="border-t border-white/10 pt-3 relative z-10">
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold hover:bg-rose-500/10 hover:text-rose-400 transition-all cursor-pointer text-left text-rose-400/90"
+            >
+              <LogOut className="w-4 h-4" /> Logout
+            </button>
+          </div>
         </div>
       </nav>
 
       {/* Main Right Area */}
-      <main className="ml-72 flex-1 flex flex-col h-screen overflow-hidden">
+      <main className="ml-72 flex-1 flex flex-col h-screen overflow-hidden bg-[#F2FBFA]">
         {/* Top Header */}
-        <header className="bg-white border-b border-slate-200 h-16 flex justify-between items-center px-8 shrink-0 z-40">
+        <header className="bg-white border-b border-[#DCE8E8] h-16 flex justify-between items-center px-8 shrink-0 z-40">
           <div className="flex items-center gap-2">
-            <span className="font-extrabold text-slate-800 tracking-tight capitalize text-sm">
-              {adminView === 'patient-profile' ? 'Patient Medical Brief Profile' : adminView === 'insurance' ? 'Patient Insurance Management' : adminView === 'medikiosk' ? 'Hospital MediKiosk Station' : adminView === 'ayush' ? 'AYUSH Clinical Assessment & Longitudinal Registry' : `Hospital Admin Area: ${adminView}`}
-            </span>
+            <h1 className="font-bold text-[#071A2A] text-[17px] tracking-tight">
+              {adminView === 'patient-profile' ? 'Patient Medical Brief Profile' : adminView === 'insurance' ? 'Patient Insurance Management' : adminView === 'medikiosk' ? 'Hospital MediKiosk Station' : adminView === 'ayush' ? 'AYUSH Clinical Assessment & Longitudinal Registry' : `Hospital Admin Area: ${adminView === 'overview' ? 'Overview' : adminView}`}
+            </h1>
           </div>
 
           <div className="flex items-center gap-4">
-            {loading && <RefreshCw className="w-4 h-4 text-teal-600 animate-spin" />}
-            <div className="w-[1px] h-5 bg-slate-200"></div>
-            <div className="flex items-center gap-2">
+            {loading && <RefreshCw className="w-4 h-4 text-[#08A99D] animate-spin" />}
+            <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-xs font-bold leading-tight text-slate-700">Triage Desk Admin</p>
-                <p className="text-[10px] text-slate-450">{adminUsername === 'admin1' ? 'Shift Desk A' : 'Shift Desk B'}</p>
+                <p className="text-xs font-bold leading-tight text-[#071A2A]">Triage Desk Admin</p>
+                <p className="text-[10.5px] text-[#71869A] mt-0.5">{adminUsername === 'admin1' ? 'Shift Desk A' : 'Shift Desk B'}</p>
               </div>
-              <div className="w-8 h-8 rounded-full bg-slate-800 text-teal-400 flex items-center justify-center font-bold text-xs shadow-sm uppercase">
+              <div className="w-8 h-8 rounded-full bg-[#08A99D] text-white flex items-center justify-center font-bold text-xs shadow-sm uppercase">
                 {adminUsername.substring(0, 2)}
               </div>
             </div>
@@ -5463,7 +5594,7 @@ function App() {
         </header>
 
         {/* Scrollable Work Area */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+        <div className="flex-1 overflow-y-auto p-6 bg-[#F2FBFA]">
           {adminView === 'overview' && renderAdminOverview()}
           {adminView === 'medikiosk' && (
             <CurrentVisitIntake
