@@ -1892,7 +1892,7 @@ function App() {
                 {adminView === 'overview' && (
                   <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-200">
                     {/* Patient Welcome Hero */}
-                    <div className="bg-[#15615D] text-white rounded-2xl p-6 shadow-sm border border-[#15615D] relative z-10 overflow-hidden">
+                    <div className="bg-[#15615D] text-white rounded-2xl p-6 shadow-sm border border-[#15615D] relative z-20">
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
                         <div>
                           <span className="text-[10px] bg-[#0D3435]/60 text-[#99F6E4] border border-[#2DD4BF]/30 font-bold tracking-wider px-2 py-0.5 rounded uppercase">Patient E-Health Portal</span>
@@ -1901,7 +1901,7 @@ function App() {
                             Access your unified health timeline, track cashless claims, and view insurance checkup benefits.
                           </p>
                           {clinicalBrief && (
-                            <div className="relative">
+                            <div className="relative z-30">
                               <button 
                                 onClick={() => setShowSummarySelector(!showSummarySelector)}
                                 disabled={downloadingSummary}
@@ -1916,51 +1916,57 @@ function App() {
                               </button>
 
                               {showSummarySelector && (
-                                <div className="absolute left-0 mt-2 bg-white border border-[#DCE8E8] rounded-xl shadow-xl p-4 w-72 z-50 space-y-3 text-[#071A2A] animate-in fade-in slide-in-from-top-2 duration-150">
-                                  <div className="flex justify-between items-center border-b border-[#DCE8E8] pb-1.5">
-                                    <span className="text-[10px] font-bold text-[#71869A] uppercase tracking-wider">Choose Summary</span>
-                                    <button 
-                                      onClick={() => setShowSummarySelector(false)}
-                                      className="text-[#71869A] hover:text-[#071A2A] text-xs font-bold cursor-pointer"
-                                    >
-                                      ✕
-                                    </button>
+                                <>
+                                  <div 
+                                    className="fixed inset-0 z-40" 
+                                    onClick={() => setShowSummarySelector(false)} 
+                                  />
+                                  <div className="absolute left-0 mt-2 bg-white border border-[#DCE8E8] rounded-xl shadow-2xl p-4 w-72 z-50 space-y-3 text-[#071A2A] animate-in fade-in slide-in-from-top-2 duration-150">
+                                    <div className="flex justify-between items-center border-b border-[#DCE8E8] pb-1.5">
+                                      <span className="text-[10px] font-bold text-[#71869A] uppercase tracking-wider">Choose Summary</span>
+                                      <button 
+                                        onClick={() => setShowSummarySelector(false)}
+                                        className="text-[#71869A] hover:text-[#071A2A] text-xs font-bold cursor-pointer"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      <button
+                                        onClick={() => handleGenerateAndDownloadSummary('complete')}
+                                        disabled={downloadingSummary}
+                                        className="w-full text-left bg-[#F2FBFA] hover:bg-[#E6F7F4] border border-[#DCE8E8] rounded-lg p-2 flex flex-col transition-all cursor-pointer disabled:opacity-50"
+                                      >
+                                        <span className="text-xs font-bold text-[#071A2A]">Complete History</span>
+                                        <span className="text-[9px] text-[#71869A] mt-0.5">Full health timeline summary</span>
+                                      </button>
+                                      <button
+                                        onClick={() => handleGenerateAndDownloadSummary('recent')}
+                                        disabled={downloadingSummary}
+                                        className="w-full text-left bg-[#F2FBFA] hover:bg-[#E6F7F4] border border-[#DCE8E8] rounded-lg p-2 flex flex-col transition-all cursor-pointer disabled:opacity-50"
+                                      >
+                                        <span className="text-xs font-bold text-[#071A2A]">Recent Updates</span>
+                                        <span className="text-[9px] text-[#71869A] mt-0.5">Recent clinical changes & medication updates</span>
+                                      </button>
+                                      {clinicalContexts.length > 0 && (
+                                        <div className="border-t border-[#DCE8E8] pt-2 space-y-1.5">
+                                          <span className="text-[8px] font-bold text-[#71869A] uppercase tracking-wider block">Conditions</span>
+                                          {clinicalContexts.map(ctx => (
+                                            <button
+                                              key={ctx.id}
+                                              onClick={() => handleGenerateAndDownloadSummary('disease', ctx.label)}
+                                              disabled={downloadingSummary}
+                                              className="w-full text-left bg-[#F2FBFA] hover:bg-[#E6F7F4] border border-[#DCE8E8] rounded-lg p-2 flex flex-col transition-all cursor-pointer disabled:opacity-50"
+                                            >
+                                              <span className="text-xs font-bold text-[#08A99D]">{ctx.label} Focus</span>
+                                              <span className="text-[9px] text-[#71869A] mt-0.5">Longitudinal {ctx.label} summary</span>
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                  <div className="space-y-1.5">
-                                    <button
-                                      onClick={() => handleGenerateAndDownloadSummary('complete')}
-                                      disabled={downloadingSummary}
-                                      className="w-full text-left bg-[#F2FBFA] hover:bg-[#E6F7F4] border border-[#DCE8E8] rounded-lg p-2 flex flex-col transition-all cursor-pointer disabled:opacity-50"
-                                    >
-                                      <span className="text-xs font-bold text-[#071A2A]">Complete History</span>
-                                      <span className="text-[9px] text-[#71869A] mt-0.5">Full health timeline summary</span>
-                                    </button>
-                                    <button
-                                      onClick={() => handleGenerateAndDownloadSummary('recent')}
-                                      disabled={downloadingSummary}
-                                      className="w-full text-left bg-[#F2FBFA] hover:bg-[#E6F7F4] border border-[#DCE8E8] rounded-lg p-2 flex flex-col transition-all cursor-pointer disabled:opacity-50"
-                                    >
-                                      <span className="text-xs font-bold text-[#071A2A]">Recent Updates</span>
-                                      <span className="text-[9px] text-[#71869A] mt-0.5">Recent clinical changes & medication updates</span>
-                                    </button>
-                                    {clinicalContexts.length > 0 && (
-                                      <div className="border-t border-[#DCE8E8] pt-2 space-y-1.5">
-                                        <span className="text-[8px] font-bold text-[#71869A] uppercase tracking-wider block">Conditions</span>
-                                        {clinicalContexts.map(ctx => (
-                                          <button
-                                            key={ctx.id}
-                                            onClick={() => handleGenerateAndDownloadSummary('disease', ctx.label)}
-                                            disabled={downloadingSummary}
-                                            className="w-full text-left bg-[#F2FBFA] hover:bg-[#E6F7F4] border border-[#DCE8E8] rounded-lg p-2 flex flex-col transition-all cursor-pointer disabled:opacity-50"
-                                          >
-                                            <span className="text-xs font-bold text-[#08A99D]">{ctx.label} Focus</span>
-                                            <span className="text-[9px] text-[#71869A] mt-0.5">Longitudinal {ctx.label} summary</span>
-                                          </button>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
+                                </>
                               )}
                             </div>
                           )}
