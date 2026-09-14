@@ -299,32 +299,39 @@ def submit_preauth_claim(
 
     import os
     import base64
+    from app.services.storage import read_uploaded_file
     attachments = []
     
     # 1. Add AI-selected records
     for r in attached_records:
-        if r.file_path and os.path.exists(r.file_path):
+        if r.file_path:
             try:
-                with open(r.file_path, "rb") as f:
-                    content_b64 = base64.b64encode(f.read()).decode("utf-8")
-                attachments.append({
-                    "filename": os.path.basename(r.file_path),
-                    "content": content_b64
-                })
+                file_bytes = read_uploaded_file(r.file_path)
+                if file_bytes:
+                    content_b64 = base64.b64encode(file_bytes).decode("utf-8")
+                    attachments.append({
+                        "filename": os.path.basename(r.file_path),
+                        "content": content_b64
+                    })
+                else:
+                    print(f"[ATTACHMENT WARNING] Could not read file content for record {r.id}: {r.file_path}")
             except Exception as attachment_err:
                 print(f"Failed to read/encode record attachment {r.file_path}: {attachment_err}")
 
     # 2. Add manually uploaded supporting documents
     for doc in supporting_docs:
         path = doc.get("file_path")
-        if path and os.path.exists(path):
+        if path:
             try:
-                with open(path, "rb") as f:
-                    content_b64 = base64.b64encode(f.read()).decode("utf-8")
-                attachments.append({
-                    "filename": doc.get("file_name") or os.path.basename(path),
-                    "content": content_b64
-                })
+                file_bytes = read_uploaded_file(path)
+                if file_bytes:
+                    content_b64 = base64.b64encode(file_bytes).decode("utf-8")
+                    attachments.append({
+                        "filename": doc.get("file_name") or os.path.basename(path),
+                        "content": content_b64
+                    })
+                else:
+                    print(f"[ATTACHMENT WARNING] Could not read file content for supporting document: {path}")
             except Exception as attachment_err:
                 print(f"Failed to read/encode supporting document {path}: {attachment_err}")
 

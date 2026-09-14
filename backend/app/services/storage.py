@@ -73,3 +73,76 @@ def delete_uploaded_file(file_path: str):
                 print(f"[STORAGE WARNING] Supabase deletion failed: {res.text} (Status Code: {res.status_code})")
         except Exception as e:
             print(f"[STORAGE WARNING] Supabase connection error: {e}")
+
+def read_uploaded_file(file_path: str) -> bytes | None:
+    """
+    Reads the file bytes for a stored document from local storage or Supabase Storage.
+    Handles relative paths, working directory variations, and Supabase retrieval.
+    """
+    if not file_path:
+        return None
+
+    normalized = file_path.replace("\\", "/")
+
+    # Strip any known uploads prefix to get clean storage-relative filename/path
+    clean = normalized
+    for prefix in ["uploads/", "./uploads/", "backend/uploads/", "./backend/uploads/"]:
+        if clean.startswith(prefix):
+            clean = clean[len(prefix):]
+            break
+
+    # 1. Try resolving locally across potential directory locations
+    backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    root_dir = os.path.dirname(backend_dir)
+    cwd = os.getcwd()
+
+    candidates = [
+        file_path,
+        normalized,
+        os.path.join(cwd, file_path),
+        os.path.join(cwd, normalized),
+        os.path.join(cwd, "backend", normalized),
+        os.path.join(cwd, "uploads", clean),
+        os.path.join(cwd, "backend", "uploads", clean),
+        os.path.join(backend_dir, normalized),
+        os.path.join(backend_dir, "uploads", clean),
+        os.path.join(root_dir, normalized),
+        os.path.join(root_dir, "uploads", clean),
+        os.path.join(root_dir, "backend", "uploads", clean),
+    ]
+
+    for candidate in candidates:
+        try:
+            if candidate and os.path.exists(candidate) and os.path.isfile(candidate):
+                with open(candidate, "rb") as f:
+                    return f.read()
+        except Exception as e:
+            print(f"[STORAGE WARNING] Error reading local file candidate {candidate}: {e}")
+
+    # 2. Try Supabase Storage if configured
+    if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY:
+        storage_path = clean.replace("\\", "/")
+        url = f"{settings.SUPABASE_URL.rstrip('/')}/storage/v1/object/ayuseva-documents/{storage_path}"
+        headers = {
+            "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}"
+        }
+        try:
+            res = requests.get(url, headers=headers)
+            if res.status_code == 200:
+                return res.content
+            else:
+                print(f"[STORAGE WARNING] Supabase download failed for {storage_path}: Status {res.status_code}")
+        except Exception as e:
+            print(f"[STORAGE WARNING] Supabase fetch error for {storage_path}: {e}")
+
+    # 3. Direct URL fallback if file_path is an external URL
+    if normalized.startswith("http://") or normalized.startswith("https://"):
+        try:
+            res = requests.get(normalized)
+            if res.status_code == 200:
+                return res.content
+        except Exception as e:
+            print(f"[STORAGE WARNING] External URL fetch error for {normalized}: {e}")
+
+    return None
