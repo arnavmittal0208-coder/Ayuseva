@@ -2,7 +2,7 @@ import os
 import random
 import string
 from datetime import datetime
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Patient, Record, Claim, ClinicalBrief, InsurancePolicy
@@ -27,6 +27,7 @@ def generate_unique_patient_id(db: Session) -> str:
 
 @router.post("/upload")
 async def upload_medical_record(
+    background_tasks: BackgroundTasks = None,
     file: UploadFile = File(...),
     patient_id: str = Form(None), # Optional patient ID. If None, we register a new patient.
     db: Session = Depends(get_db)
@@ -183,6 +184,11 @@ async def upload_medical_record(
             db.add(new_claim)
             db.commit()
 
+    # Pre-warm clinical brief in background so it's ready when user views patient
+    if background_tasks:
+        from app.routers.patients import warm_brief_cache_background
+        background_tasks.add_task(warm_brief_cache_background, patient_id, db_ctx.name)
+
     return {
         "message": "File processed successfully.",
         "patient_id": patient_id,
@@ -331,8 +337,18 @@ def delete_record(id: int, db: Session = Depends(get_db)):
         # Invalidate clinical briefs by deleting cached entries for this patient
         db.query(ClinicalBrief).filter(ClinicalBrief.patient_id == patient_id).delete()
         
+        ctx_id = record.clinical_context_id
         db.delete(record)
         db.commit()
+
+        # Clean up orphaned clinical context if no records remain
+        if ctx_id:
+            from app.models import ClinicalContext
+            remaining = db.query(Record).filter(Record.clinical_context_id == ctx_id).count()
+            if remaining == 0:
+                db.query(ClinicalContext).filter(ClinicalContext.id == ctx_id).delete()
+                db.commit()
+
         return {"message": f"Record {id} deleted successfully."}
     except Exception as e:
         db.rollback()

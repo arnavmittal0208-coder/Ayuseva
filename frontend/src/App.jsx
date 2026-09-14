@@ -814,6 +814,7 @@ function App() {
   const [briefLoading, setBriefLoading] = useState(false)
   const patientLoadSeq = useRef(0)
   const activeUidRef = useRef(null)
+  const briefAbortRef = useRef(null)
   
   // Active test selection for chart
   const [selectedChartTest, setSelectedChartTest] = useState('')
@@ -1229,21 +1230,20 @@ function App() {
         'X-Patient-UID': uid || ''
       }
 
-      // 1. Fetch Timeline (this patient only)
-      const timelineRes = await fetch(`${BASE_URL}/api/patients/${uid}/timeline`, { headers })
+      // Fetch primary clinical records concurrently to eliminate sequential waterfall
+      const [timelineRes, ctxRes, claimsRes] = await Promise.all([
+        fetch(`${BASE_URL}/api/patients/${uid}/timeline`, { headers }),
+        fetch(`${BASE_URL}/api/patients/${uid}/clinical-contexts`, { headers }),
+        fetch(`${BASE_URL}/api/claims/patient/${uid}`)
+      ])
+
       if (seq !== patientLoadSeq.current) return
       if (!timelineRes.ok) {
         throw new Error(`Patient ${uid} not found`)
       }
       const timelineData = await timelineRes.json()
       if (seq !== patientLoadSeq.current) return
-      setActivePatient(timelineData.patient)
-      setTimeline(timelineData.timeline)
-      setPatientId(uid)
 
-      // 2. Fetch auto-detected clinical contexts for this patient only
-      const ctxRes = await fetch(`${BASE_URL}/api/patients/${uid}/clinical-contexts`, { headers })
-      if (seq !== patientLoadSeq.current) return
       let nextMode = 'complete'
       let nextContextId = null
       let nextContexts = []
@@ -1255,29 +1255,29 @@ function App() {
           nextMode = 'disease'
         }
       }
-      setClinicalContexts(nextContexts)
-      setSelectedContextId(nextContextId)
-      setActiveSummaryMode(nextMode)
-      setContextsLoaded(true)
 
-      // 3. Fetch Active Claims
-      const claimsRes = await fetch(`${BASE_URL}/api/claims/patient/${uid}`)
-      if (seq !== patientLoadSeq.current) return
       if (claimsRes.ok) {
         const claimsData = await claimsRes.json()
         setClaims(claimsData || [])
       } else {
         setClaims([])
       }
-      
-      // 4. Fetch Insurance Profile
-      await fetchPatientInsurance(uid)
-      
-      // 5. Fetch Personal Documents
-      await fetchPersonalDocs(uid)
-      
-      // 6. Fetch Preventive Checkups
-      await fetchCheckups(uid)
+
+      // Synchronously commit patient and context state together so useEffect only triggers ONCE with the final resolved context!
+      setActivePatient(timelineData.patient)
+      setTimeline(timelineData.timeline)
+      setPatientId(uid)
+      setClinicalContexts(nextContexts)
+      setSelectedContextId(nextContextId)
+      setActiveSummaryMode(nextMode)
+      setContextsLoaded(true)
+
+      // Fetch secondary profile data concurrently
+      await Promise.all([
+        fetchPatientInsurance(uid),
+        fetchPersonalDocs(uid),
+        fetchCheckups(uid)
+      ])
       
       // Update patient lookup list in background
       fetchPatientsList()
@@ -1295,6 +1295,13 @@ function App() {
   }
 
   const fetchBriefOnly = async (uid, mode, specialty, disease, reason, seq = patientLoadSeq.current) => {
+    // Abort previous in-flight brief request if still running
+    if (briefAbortRef.current) {
+      briefAbortRef.current.abort()
+    }
+    const abortController = new AbortController()
+    briefAbortRef.current = abortController
+
     const timer = setTimeout(() => {
       if (seq === patientLoadSeq.current && activeUidRef.current === uid) {
         setBriefLoading(true)
@@ -1315,7 +1322,7 @@ function App() {
         'X-Patient-UID': uid || ''
       }
       
-      const briefRes = await fetch(url, { headers })
+      const briefRes = await fetch(url, { headers, signal: abortController.signal })
       clearTimeout(timer)
       if (seq !== patientLoadSeq.current || activeUidRef.current !== uid) return
       if (briefRes.ok) {
@@ -1342,6 +1349,10 @@ function App() {
         setBriefLoading(false)
       }
     } catch (err) {
+      if (err.name === 'AbortError') {
+        // Silently ignore cancelled in-flight request
+        return
+      }
       clearTimeout(timer)
       console.error("Failed to load clinical brief:", err)
       if (seq === patientLoadSeq.current && activeUidRef.current === uid) {
@@ -1406,7 +1417,13 @@ function App() {
     }
 
     const disease = activeSummaryMode === 'disease' ? (selected?.label || '') : ''
-    fetchBriefOnly(activePatient.id, activeSummaryMode, activeSpecialty, disease, currentVisitReason)
+    const timer = setTimeout(() => {
+      fetchBriefOnly(activePatient.id, activeSummaryMode, activeSpecialty, disease, currentVisitReason)
+    }, 150)
+
+    return () => {
+      clearTimeout(timer)
+    }
   }, [activePatient?.id, activeSummaryMode, activeSpecialty, currentVisitReason, contextsLoaded, selectedContextId])
 
   // Handle Patient Registration

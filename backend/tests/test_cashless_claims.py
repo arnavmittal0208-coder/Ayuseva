@@ -57,6 +57,7 @@ def test_cashless_claims_workflow():
         # Clean up existing test state
         db.query(Claim).filter(Claim.patient_id == patient_id).delete()
         db.query(Record).filter(Record.patient_id == patient_id).delete()
+        db.query(Record).filter(Record.id.in_([1, 2])).delete()
         db.query(InsurancePolicy).filter(InsurancePolicy.patient_id == patient_id).delete()
         db.query(Patient).filter(Patient.id == patient_id).delete()
         db.commit()

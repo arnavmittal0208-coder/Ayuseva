@@ -147,6 +147,9 @@ def get_clinical_contexts(
     contexts_list = []
     from datetime import datetime
     for ctx in contexts:
+        # Only include contexts that actually have associated medical records
+        if not ctx.records:
+            continue
         contexts_list.append({
             "id": ctx.id,
             "label": ctx.name,
@@ -185,27 +188,27 @@ def get_clinical_contexts(
     }
 
 
-@router.get("/{uid}/brief")
-def get_clinical_brief(
-    uid: str,
-    summary_type: str = Query("complete", description="Summary mode: complete, current_visit, disease, specialty, longitudinal, recent, emergency"),
-    specialty: str = Query("General", description="Filter details relevant to this medical specialty"),
-    disease_focus: str = Query(None, description="Automatically selected clinical context label"),
-    current_visit_reason: str = Query(None, description="Reason for current visit"),
-    generate_if_missing: bool = Query(True, description="Generate using AI on cache miss if True, otherwise return 404/persisted error"),
-    x_user_role: str = Header(None, alias="X-User-Role"),
-    x_patient_uid: str = Header(None, alias="X-Patient-UID"),
-    db: Session = Depends(get_db)
-):
-    """
-    Generates an AI clinical brief for a patient based on their EMR history,
-    scoped dynamically to the selected persistent clinical context when summary_type is 'disease'.
-    """
-    # Enforce patient isolation if patient role is declared
-    if x_user_role == "patient":
-        if not x_patient_uid or x_patient_uid.upper() != uid.upper():
-            raise HTTPException(status_code=403, detail="Access denied: You can only access your own patient brief.")
+import threading
+from concurrent.futures import Future
 
+_brief_generation_futures = {}
+_brief_futures_lock = threading.Lock()
+
+
+def generate_and_cache_brief_internal(
+    db: Session,
+    uid: str,
+    summary_type: str = "complete",
+    specialty: str = "General",
+    disease_focus: str = None,
+    current_visit_reason: str = None,
+    generate_if_missing: bool = True
+) -> dict:
+    """
+    Core engine for clinical brief generation and retrieval.
+    Includes in-flight deduplication to ensure concurrent calls for the same patient/context/hash
+    share a single generation task instead of issuing redundant LLM requests.
+    """
     patient = db.query(Patient).filter(Patient.id == uid).first()
     if not patient:
         raise HTTPException(status_code=404, detail=f"Patient with ID {uid} not found.")
@@ -281,8 +284,40 @@ def get_clinical_brief(
     if cached and cached.records_hash == records_hash:
         print("CLINICAL BRIEF CACHE HIT: Returning cached summary.", flush=True)
         return cached.brief_json
-    else:
-        print(f"CLINICAL BRIEF CACHE MISS. Current hash: {records_hash}", flush=True)
+
+    print(f"CLINICAL BRIEF CACHE MISS. Current hash: {records_hash}", flush=True)
+
+    if not ai_records:
+        return {
+            "specialty": specialty,
+            "summary_type": summary_type,
+            "clinical_summary": f"No medical records currently filed under condition: {resolved_disease_focus or 'this context'}.",
+            "active_problems": [],
+            "current_medications": [],
+            "warnings": [],
+            "treatment_gaps": [],
+            "relevance_metrics": [],
+            "clinical_contexts": [],
+            "selected_context": resolved_disease_focus,
+        }
+
+    # Deduplicate concurrent in-flight generation tasks
+    task_key = (uid, summary_type, specialty, resolved_disease_focus, current_visit_reason, records_hash)
+    with _brief_futures_lock:
+        if task_key in _brief_generation_futures:
+            in_flight_future = _brief_generation_futures[task_key]
+            is_creator = False
+        else:
+            in_flight_future = Future()
+            _brief_generation_futures[task_key] = in_flight_future
+            is_creator = True
+
+    if not is_creator:
+        print(f"[CONCURRENT DEDUPLICATION] Joining in-flight brief generation for {uid} ({resolved_disease_focus})", flush=True)
+        try:
+            return in_flight_future.result(timeout=90)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed during parallel clinical brief generation: {str(e)}")
 
     try:
         brief_data = generate_clinical_brief(
@@ -365,10 +400,68 @@ def get_clinical_brief(
             db.add(cached)
         db.commit()
 
+        in_flight_future.set_result(brief_data)
         return brief_data
     except Exception as e:
         db.rollback()
+        in_flight_future.set_exception(e)
         raise HTTPException(status_code=500, detail=f"Failed to generate clinical brief: {str(e)}")
+    finally:
+        with _brief_futures_lock:
+            _brief_generation_futures.pop(task_key, None)
+
+
+def warm_brief_cache_background(patient_id: str, disease_focus: str = None):
+    """
+    Background worker that pre-warms the clinical brief cache as soon as a record is ingested.
+    """
+    from app.database import SessionLocal
+    db = SessionLocal()
+    try:
+        generate_and_cache_brief_internal(
+            db=db,
+            uid=patient_id,
+            summary_type="disease" if disease_focus else "complete",
+            specialty="General",
+            disease_focus=disease_focus
+        )
+        print(f"[BACKGROUND WARM] Successfully cached brief for {patient_id} ({disease_focus})", flush=True)
+    except Exception as e:
+        print(f"[BACKGROUND WARM] Brief pre-warming skipped or encountered error: {e}", flush=True)
+    finally:
+        db.close()
+
+
+@router.get("/{uid}/brief")
+def get_clinical_brief(
+    uid: str,
+    summary_type: str = Query("complete", description="Summary mode: complete, current_visit, disease, specialty, longitudinal, recent, emergency"),
+    specialty: str = Query("General", description="Filter details relevant to this medical specialty"),
+    disease_focus: str = Query(None, description="Automatically selected clinical context label"),
+    current_visit_reason: str = Query(None, description="Reason for current visit"),
+    generate_if_missing: bool = Query(True, description="Generate using AI on cache miss if True, otherwise return 404/persisted error"),
+    x_user_role: str = Header(None, alias="X-User-Role"),
+    x_patient_uid: str = Header(None, alias="X-Patient-UID"),
+    db: Session = Depends(get_db)
+):
+    """
+    Generates an AI clinical brief for a patient based on their EMR history,
+    scoped dynamically to the selected persistent clinical context when summary_type is 'disease'.
+    """
+    # Enforce patient isolation if patient role is declared
+    if x_user_role == "patient":
+        if not x_patient_uid or x_patient_uid.upper() != uid.upper():
+            raise HTTPException(status_code=403, detail="Access denied: You can only access your own patient brief.")
+
+    return generate_and_cache_brief_internal(
+        db=db,
+        uid=uid,
+        summary_type=summary_type,
+        specialty=specialty,
+        disease_focus=disease_focus,
+        current_visit_reason=current_visit_reason,
+        generate_if_missing=generate_if_missing
+    )
 
 @router.delete("/{uid}")
 def delete_patient(uid: str, db: Session = Depends(get_db)):

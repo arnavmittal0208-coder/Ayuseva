@@ -319,22 +319,24 @@ def match_document_to_clinical_context(
     """
     cond_name = extract_meaningful_condition_name(parsed_doc)
     
-    if not settings.NVIDIA_API_KEY:
-        matched_id = match_name_to_contexts(cond_name, existing_contexts)
-        if matched_id:
-            return {
-                "matched_context_id": matched_id,
-                "suggested_context_name": None,
-                "suggested_context_kind": None,
-                "reason": f"Fallback Match: Associated with existing context via clinical overlap: '{cond_name}'"
-            }
-        else:
-            return {
-                "matched_context_id": None,
-                "suggested_context_name": cond_name,
-                "suggested_context_kind": "acute_active" if any(w in cond_name.lower() for w in ["fever", "accident", "surgery", "fracture", "injury"]) else "chronic_ongoing",
-                "reason": f"Fallback Match: Identified as a new clinical episode: '{cond_name}'"
-            }
+    # 1. Fast-path: Check existing contexts locally first (exact match, clinical overlap words, disease keywords)
+    matched_id = match_name_to_contexts(cond_name, existing_contexts)
+    if matched_id:
+        return {
+            "matched_context_id": matched_id,
+            "suggested_context_name": None,
+            "suggested_context_kind": None,
+            "reason": f"Associated with existing context via clinical overlap: '{cond_name}'"
+        }
+        
+    # 2. If no existing contexts exist for patient, this is genuinely the first clinical episode
+    if not existing_contexts or not settings.NVIDIA_API_KEY:
+        return {
+            "matched_context_id": None,
+            "suggested_context_name": cond_name,
+            "suggested_context_kind": "acute_active" if any(w in cond_name.lower() for w in ["fever", "accident", "surgery", "fracture", "injury"]) else "chronic_ongoing",
+            "reason": f"Identified as new clinical episode: '{cond_name}'"
+        }
 
     contexts_json = json.dumps(existing_contexts, indent=2)
     doc_json = json.dumps(parsed_doc, indent=2)
@@ -352,13 +354,12 @@ def match_document_to_clinical_context(
     ### CLASSIFICATION RULES:
     1. A clinical context represents a broader underlying primary medical condition or episode (e.g. "Diabetes", "Hypertension", "Viral Fever", "Brain Surgery / Head Injury").
     2. Check the full available evidence from inside the document: diagnoses, procedures/treatments, dates, medications, and document content.
-    3. Do NOT create a new clinical context simply because the document type, filename, or diagnosis subtype is different. If a medicine bill, scan, or billing estimate references the same event/episode/condition as an existing context, they belong to the SAME context.
-    4. Compare the document's condition against existing contexts. If an existing broader context matches (e.g. existing context is "Diabetes" and new document contains "Type 2 Diabetes" or "Metformin"), you MUST match it to that existing context ID.
-    5. If matched: set `matched_context_id` to the integer ID of the matching context.
-    6. If it represents a genuinely new/different medical episode: set `matched_context_id` to null, and suggest a professional name representing the broader underlying medical condition (e.g. "Diabetes" instead of "Type 2 Diabetes Mellitus"; "Hypertension" instead of "Essential Hypertension"; "Brain Injury" instead of "Subdural Hematoma") and kind ('chronic_ongoing', 'acute_active', 'acute_resolved'). Do NOT use generic names like "Medical Episode" unless no clinical condition can be identified from the document content.
+    3. If an existing broader context matches (e.g. existing context is "Diabetes" and new document contains "Type 2 Diabetes" or "Metformin"), you MUST match it to that existing context ID.
+    4. If matched: set `matched_context_id` to the integer ID of the matching context.
+    5. If genuinely new/different: set `matched_context_id` to null, suggest a clean clinical name and kind ('chronic_ongoing', 'acute_active', 'acute_resolved').
 
     ### OUTPUT SCHEMA:
-    Return ONLY a single JSON object. No markdown wrappers, no backticks.
+    Return ONLY a single JSON object:
     {{
         "matched_context_id": number or null,
         "suggested_context_name": "String or null",
@@ -376,11 +377,11 @@ def match_document_to_clinical_context(
         "model": "meta/llama-3.2-11b-vision-instruct",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.1,
-        "max_tokens": 1000
+        "max_tokens": 150
     }
 
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=15)
+        response = requests.post(url, headers=headers, json=payload, timeout=3.5)
         if response.status_code != 200:
             raise ValueError(f"Nvidia status {response.status_code}")
         text_resp = response.json()["choices"][0]["message"]["content"].strip()
