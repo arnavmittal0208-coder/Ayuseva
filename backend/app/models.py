@@ -21,6 +21,7 @@ class Patient(Base):
     scheduled_checkups = relationship("ScheduledCheckup", back_populates="patient", cascade="all, delete-orphan")
     clinical_contexts = relationship("ClinicalContext", back_populates="patient", cascade="all, delete-orphan")
     visit_intakes = relationship("VisitIntake", back_populates="patient", cascade="all, delete-orphan")
+    referrals = relationship("Referral", back_populates="patient", cascade="all, delete-orphan")
 
 class Record(Base):
     __tablename__ = "records"
@@ -189,4 +190,31 @@ class VisitIntake(Base):
 
     # Relationships
     patient = relationship("Patient", back_populates="visit_intakes")
+
+
+class Referral(Base):
+    __tablename__ = "referrals"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    patient_id = Column(String, ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
+    clinical_context_id = Column(Integer, ForeignKey("clinical_contexts.id", ondelete="SET NULL"), nullable=True)
+    clinical_context_name = Column(String, nullable=False)
+    referring_hospital = Column(String, default="AyuSeva Network Hospital", nullable=False)
+    receiving_hospital = Column(String, nullable=False)
+    receiving_department = Column(String, nullable=True)
+    receiving_doctor = Column(String, nullable=True)
+    contact_email = Column(String, nullable=True)
+    contact_phone = Column(String, nullable=True)
+    referral_reason = Column(String, nullable=False)
+    urgency = Column(String, default="Emergency", nullable=False)  # Emergency, Urgent, Routine
+    status = Column(String, default="Prepared", nullable=False)   # Draft, Prepared, Shared
+    include_current_situation = Column(Boolean, default=True)
+    selected_record_ids = Column(JSON, nullable=True)  # List of integer record IDs
+    package_data = Column(JSON, nullable=True)        # Structured handoff snapshot data
+    created_at = Column(DateTime, default=datetime.utcnow)
+    shared_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    patient = relationship("Patient", back_populates="referrals")
+    clinical_context = relationship("ClinicalContext")
 

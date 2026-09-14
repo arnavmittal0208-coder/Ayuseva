@@ -10,6 +10,7 @@ import {
 import CurrentVisitIntake from './components/CurrentVisitIntake.jsx'
 import AyushClinicalDashboard from './components/AyushClinicalDashboard.jsx'
 import AyusevaLogin from './components/AyusevaLogin.jsx'
+import EmergencyReferral from './components/EmergencyReferral.jsx'
 
 const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:8000"
 
@@ -4091,16 +4092,14 @@ function App() {
 
   const renderAdminEmergency = () => {
     return (
-      <div className="max-w-md mx-auto bg-white border border-slate-200 rounded-xl p-8 shadow-sm text-center space-y-3">
-        <MapPin className="w-12 h-12 text-rose-600 mx-auto animate-bounce" />
-        <h3 className="text-base font-bold text-slate-850">Emergency Referral Center</h3>
-        <p className="text-xs text-slate-400 max-w-xs mx-auto leading-normal">
-          This module handles automated emergency transfer summaries and sends parsed FHIR records to receiving clinics in real-time.
-        </p>
-        <span className="inline-block bg-slate-100 text-slate-500 border border-slate-200 px-3 py-1 rounded text-[11px] font-mono font-bold">
-          Feature Coming Soon
-        </span>
-      </div>
+      <EmergencyReferral
+        patient={activePatient}
+        allPatients={allPatients}
+        onSelectPatient={fetchPatientData}
+        onBack={() => setAdminView('overview')}
+        showToast={showToast}
+        baseUrl={BASE_URL}
+      />
     )
   }
 
