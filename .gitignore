@@ -59,6 +59,7 @@ presentation_slides.html
 ayuseva_presentation_viewer.html
 presentation.html
 *.pdf
+!AyuSeva_AI_Clinical_Summary_Accuracy_Report.pdf
 
 # Markdown documentation (only README.md files stay on GitHub)
 *.md
